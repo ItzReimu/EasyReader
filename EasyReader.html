@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>现代TXT阅读器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #4f46e5;
+            --secondary-color: #6366f1;
+            --background-light: #f8fafc;
+            --background-dark: #0f172a;
+            --text-light: #334155;
+            --text-dark: #e2e8f0;
+            --card-light: #ffffff;
+            --card-dark: #1e293b;
+            --border-light: #e2e8f0;
+            --border-dark: #334155;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--background-light);
+            color: var(--text-light);
+            transition: all 0.3s ease;
+            overflow-x: hidden;
+        }
+
+        body.dark {
+            background: var(--background-dark);
+            color: var(--text-dark);
+        }
+
+        /* 顶部导航栏 */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: var(--card-light);
+            border-bottom: 1px solid var(--border-light);
+            backdrop-filter: blur(20px);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        body.dark .navbar {
+            background: rgba(15, 23, 42, 0.9);
+            border-bottom-color: var(--border-dark);
+        }
+
+        .logo {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .control-btn {
+            background: none;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            color: var(--text-light);
+            transition: all 0.2s ease;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        body.dark .control-btn {
+            color: var(--text-dark);
+        }
+
+        .control-btn:hover {
+            background: rgba(79, 70, 229, 0.1);
+            color: var(--primary-color);
+        }
+
+        /* 主要内容区域 */
+        .main-container {
+            margin-top: 60px;
+            min-height: calc(100vh - 60px);
+            display: flex;
+        }
+
+        /* 侧边栏 */
+        .sidebar {
+            width: 300px;
+            background: var(--card-light);
+            border-right: 1px solid var(--border-light);
+            padding: 20px;
+            transition: all 0.3s ease;
+            position: fixed;
+            height: calc(100vh - 60px);
+            overflow-y: auto;
+            transform: translateX(-100%);
+        }
+
+        body.dark .sidebar {
+            background: var(--card-dark);
+            border-right-color: var(--border-dark);
+        }
+
+        .sidebar.open {
+            transform: translateX(0);
+        }
+
+        .file-upload {
+            border: 2px dashed var(--border-light);
+            border-radius: 12px;
+            padding: 30px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        body.dark .file-upload {
+            border-color: var(--border-dark);
+        }
+
+        .file-upload:hover {
+            border-color: var(--primary-color);
+            background: rgba(79, 70, 229, 0.05);
+        }
+
+        .file-upload input {
+            display: none;
+        }
+
+        .reading-settings {
+            background: rgba(79, 70, 229, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .setting-group {
+            margin-bottom: 15px;
+        }
+
+        .setting-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--text-light);
+        }
+
+        body.dark .setting-label {
+            color: var(--text-dark);
+        }
+
+        .setting-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--border-light);
+            border-radius: 6px;
+            background: var(--card-light);
+            color: var(--text-light);
+            font-size: 14px;
+        }
+
+        body.dark .setting-input {
+            background: var(--background-dark);
+            border-color: var(--border-dark);
+            color: var(--text-dark);
+        }
+
+        .slider {
+            -webkit-appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--border-light);
+            outline: none;
+        }
+
+        body.dark .slider {
+            background: var(--border-dark);
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            cursor: pointer;
+        }
+
+        /* 阅读区域 */
+        .reading-area {
+            flex: 1;
+            margin-left: 0;
+            transition: all 0.3s ease;
+        }
+
+        .reading-area.sidebar-open {
+            margin-left: 300px;
+        }
+
+        .reader-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            line-height: 1.8;
+            font-size: 16px;
+        }
+
+        .chapter-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 30px;
+            color: var(--primary-color);
+            text-align: center;
+        }
+
+        .text-content {
+            background: var(--card-light);
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+            margin-bottom: 30px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            transition: all 0.3s ease;
+        }
+
+        body.dark .text-content {
+            background: var(--card-dark);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        /* 阅读进度条 */
+        .progress-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: var(--card-light);
+            border-top: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 1000;
+        }
+
+        body.dark .progress-container {
+            background: rgba(15, 23, 42, 0.9);
+            border-top-color: var(--border-dark);
+        }
+
+        .progress-bar {
+            flex: 1;
+            height: 4px;
+            background: var(--border-light);
+            border-radius: 2px;
+            margin: 0 20px;
+            position: relative;
+            cursor: pointer;
+        }
+
+        body.dark .progress-bar {
+            background: var(--border-dark);
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--primary-color);
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-info {
+            font-size: 14px;
+            color: var(--text-light);
+            white-space: nowrap;
+        }
+
+        body.dark .progress-info {
+            color: var(--text-dark);
+        }
+
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: #94a3b8;
+        }
+
+        .empty-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 280px;
+            }
+
+            .reading-area.sidebar-open {
+                margin-left: 0;
+            }
+
+            .reader-container {
+                padding: 20px 15px;
+            }
+
+            .text-content {
+                padding: 20px;
+            }
+
+            .nav-controls .control-btn span {
+                display: none;
+            }
+        }
+
+        /* 动画效果 */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .text-content {
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        /* 工具提示 */
+        .tooltip {
+            position: relative;
+        }
+
+        .tooltip:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1f2937;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            white-space: nowrap;
+            z-index: 1001;
+        }
+
+        /* 自动滚动指示器 */
+        .auto-scroll-indicator {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            background: var(--primary-color);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .auto-scroll-indicator.active {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <div class="navbar">
+        <div class="logo">
+            📚 现代阅读器
+        </div>
+        <div class="nav-controls">
+            <button class="control-btn tooltip" data-tooltip="打开设置" onclick="toggleSidebar()">
+                ⚙️ <span>设置</span>
+            </button>
+            <button class="control-btn tooltip" data-tooltip="自动滚动" onclick="toggleAutoScroll()">
+                ⏯️ <span>自动滚动</span>
+            </button>
+            <button class="control-btn tooltip" data-tooltip="全屏模式" onclick="toggleFullscreen()">
+                📺 <span>全屏</span>
+            </button>
+            <button class="control-btn tooltip" data-tooltip="深色模式" onclick="toggleDarkMode()">
+                🌙 <span>深色</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 自动滚动指示器 -->
+    <div class="auto-scroll-indicator" id="autoScrollIndicator">
+        自动滚动中... 点击任意位置暂停
+    </div>
+
+    <!-- 主要内容区域 -->
+    <div class="main-container">
+        <!-- 侧边栏 -->
+        <div class="sidebar" id="sidebar">
+            <!-- 文件上传区域 -->
+            <div class="file-upload" onclick="document.getElementById('fileInput').click()">
+                <div style="font-size: 32px; margin-bottom: 10px;">📄</div>
+                <div style="font-weight: 600; margin-bottom: 5px;">选择TXT文件</div>
+                <div style="font-size: 14px; color: #64748b;">点击上传或拖拽文件到这里</div>
+                <input type="file" id="fileInput" accept=".txt" onchange="loadFile(event)">
+            </div>
+
+            <!-- 阅读设置 -->
+            <div class="reading-settings">
+                <h3 style="margin-bottom: 15px; color: var(--primary-color);">📖 阅读设置</h3>
+                
+                <div class="setting-group">
+                    <label class="setting-label">字体大小</label>
+                    <input type="range" class="slider" id="fontSize" min="12" max="24" value="16" 
+                           oninput="updateFontSize(this.value)">
+                    <small id="fontSizeValue">16px</small>
+                </div>
+
+                <div class="setting-group">
+                    <label class="setting-label">行间距</label>
+                    <input type="range" class="slider" id="lineHeight" min="1.4" max="2.5" step="0.1" value="1.8" 
+                           oninput="updateLineHeight(this.value)">
+                    <small id="lineHeightValue">1.8</small>
+                </div>
+
+                <div class="setting-group">
+                    <label class="setting-label">自动滚动速度</label>
+                    <input type="range" class="slider" id="scrollSpeed" min="1" max="10" value="3" 
+                           oninput="updateScrollSpeed(this.value)">
+                    <small id="scrollSpeedValue">中等</small>
+                </div>
+
+                <div class="setting-group">
+                    <label class="setting-label">字体颜色</label>
+                    <input type="color" class="setting-input" id="textColor" value="#334155" 
+                           onchange="updateTextColor(this.value)">
+                </div>
+
+                <div class="setting-group">
+                    <label class="setting-label">背景颜色</label>
+                    <input type="color" class="setting-input" id="backgroundColor" value="#ffffff" 
+                           onchange="updateBackgroundColor(this.value)">
+                </div>
+            </div>
+
+            <!-- 跳转功能 -->
+            <div class="reading-settings">
+                <h3 style="margin-bottom: 15px; color: var(--primary-color);">🎯 快速跳转</h3>
+                
+                <div class="setting-group">
+                    <label class="setting-label">跳转到百分比</label>
+                    <input type="number" class="setting-input" id="jumpPercent" min="0" max="100" 
+                           placeholder="输入0-100" onchange="jumpToPercent(this.value)">
+                </div>
+
+                <div class="setting-group">
+                    <button class="control-btn" style="width: 100%; justify-content: center;" onclick="jumpToTop()">
+                        ⬆️ 跳转到开头
+                    </button>
+                </div>
+
+                <div class="setting-group">
+                    <button class="control-btn" style="width: 100%; justify-content: center;" onclick="jumpToEnd()">
+                        ⬇️ 跳转到结尾
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 阅读区域 -->
+        <div class="reading-area" id="readingArea">
+            <div class="reader-container">
+                <div class="empty-state" id="emptyState">
+                    <div class="empty-icon">📖</div>
+                    <h3>欢迎使用现代TXT阅读器</h3>
+                    <p style="margin-top: 10px;">点击左侧设置按钮上传您的TXT文件开始阅读</p>
+                </div>
+                
+                <div id="contentArea" style="display: none;">
+                    <h1 class="chapter-title" id="chapterTitle">文档内容</h1>
+                    <div class="text-content" id="textContent"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部进度条 -->
+    <div class="progress-container" id="progressContainer" style="display: none;">
+        <div class="progress-info">
+            <span id="currentPage">0</span>/<span id="totalPages">0</span>
+        </div>
+        <div class="progress-bar" onclick="jumpToPosition(event)">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="progress-info">
+            <span id="readingProgress">0%</span>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let currentText = '';
+        let autoScrollInterval = null;
+        let autoScrollSpeed = 3;
+        let isAutoScrolling = false;
+        let totalWords = 0;
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 恢复用户设置
+            loadUserSettings();
+            
+            // 添加滚动事件监听
+            window.addEventListener('scroll', updateReadingProgress);
+            
+            // 添加键盘快捷键
+            document.addEventListener('keydown', handleKeyboardShortcuts);
+            
+            // 添加点击事件停止自动滚动
+            document.addEventListener('click', function(e) {
+                if (isAutoScrolling && !e.target.closest('.navbar') && !e.target.closest('.sidebar')) {
+                    toggleAutoScroll();
+                }
+            });
+
+            // 添加拖拽上传功能
+            const fileUpload = document.querySelector('.file-upload');
+            fileUpload.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                fileUpload.style.borderColor = 'var(--primary-color)';
+                fileUpload.style.background = 'rgba(79, 70, 229, 0.1)';
+            });
+            
+            fileUpload.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                fileUpload.style.borderColor = 'var(--border-light)';
+                fileUpload.style.background = 'transparent';
+            });
+            
+            fileUpload.addEventListener('drop', (e) => {
+                e.preventDefault();
+                fileUpload.style.borderColor = 'var(--border-light)';
+                fileUpload.style.background = 'transparent';
+                
+                const files = e.dataTransfer.files;
+                if (files.length > 0 && files[0].type === 'text/plain') {
+                    loadFileContent(files[0]);
+                }
+            });
+        });
+
+        // 切换侧边栏
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const readingArea = document.getElementById('readingArea');
+            
+            sidebar.classList.toggle('open');
+            readingArea.classList.toggle('sidebar-open');
+        }
+
+        // 加载文件
+        function loadFile(event) {
+            const file = event.target.files[0];
+            if (file && file.type === 'text/plain') {
+                loadFileContent(file);
+            } else {
+                alert('请选择TXT格式的文件！');
+            }
+        }
+
+        // 读取文件内容
+        function loadFileContent(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                currentText = e.target.result;
+                displayContent(currentText, file.name);
+                document.getElementById('progressContainer').style.display = 'flex';
+                updateTotalWords();
+                updateReadingProgress();
+            };
+            reader.readAsText(file, 'UTF-8');
+        }
+
+        // 显示内容
+        function displayContent(text, fileName) {
+            document.getElementById('emptyState').style.display = 'none';
+            document.getElementById('contentArea').style.display = 'block';
+            
+            document.getElementById('chapterTitle').textContent = fileName || '文档内容';
+            document.getElementById('textContent').textContent = text;
+            
+            // 自动关闭侧边栏（移动端）
+            if (window.innerWidth <= 768) {
+                toggleSidebar();
+            }
+        }
+
+        // 更新字体大小
+        function updateFontSize(size) {
+            document.getElementById('textContent').style.fontSize = size + 'px';
+            document.getElementById('fontSizeValue').textContent = size + 'px';
+            saveUserSettings();
+        }
+
+        // 更新行间距
+        function updateLineHeight(height) {
+            document.getElementById('textContent').style.lineHeight = height;
+            document.getElementById('lineHeightValue').textContent = height;
+            saveUserSettings();
+        }
+
+        // 更新滚动速度
+        function updateScrollSpeed(speed) {
+            autoScrollSpeed = parseInt(speed);
+            const speedText = ['极慢', '很慢', '慢', '中等', '快', '很快', '极快'];
+            document.getElementById('scrollSpeedValue').textContent = speedText[speed - 1] || '中等';
+            
+            // 如果正在自动滚动，重新启动以应用新速度
+            if (isAutoScrolling) {
+                stopAutoScroll();
+                startAutoScroll();
+            }
+            saveUserSettings();
+        }
+
+        // 更新文字颜色
+        function updateTextColor(color) {
+            document.getElementById('textContent').style.color = color;
+            saveUserSettings();
+        }
+
+        // 更新背景颜色
+        function updateBackgroundColor(color) {
+            document.getElementById('textContent').style.backgroundColor = color;
+            saveUserSettings();
+        }
+
+        // 切换深色模式
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark');
+            saveUserSettings();
+        }
+
+        // 切换全屏模式
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log('无法进入全屏模式:', err);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        // 自动滚动功能
+        function toggleAutoScroll() {
+            if (isAutoScrolling) {
+                stopAutoScroll();
+            } else {
+                startAutoScroll();
+            }
+        }
+
+        function startAutoScroll() {
+            if (!currentText) return;
+            
+            isAutoScrolling = true;
+            document.getElementById('autoScrollIndicator').classList.add('active');
+            
+            autoScrollInterval = setInterval(() => {
+                window.scrollBy(0, autoScrollSpeed);
+                
+                // 如果已经滚动到底部，停止自动滚动
+                if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 100) {
+                    stopAutoScroll();
+                }
+            }, 50);
+        }
+
+        function stopAutoScroll() {
+            isAutoScrolling = false;
+            document.getElementById('autoScrollIndicator').classList.remove('active');
+            
+            if (autoScrollInterval) {
+                clearInterval(autoScrollInterval);
+                autoScrollInterval = null;
+            }
+        }
+
+        // 跳转功能
+        function jumpToPercent(percent) {
+            if (!currentText || percent < 0 || percent > 100) return;
+            
+            const targetPosition = (document.body.scrollHeight - window.innerHeight) * (percent / 100);
+            window.scrollTo({
+                top: targetPosition,
+                behavior: 'smooth'
+            });
+        }
+
+        function jumpToTop() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+
+        function jumpToEnd() {
+            window.scrollTo({
+                top: document.body.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+
+        function jumpToPosition(event) {
+            const progressBar = event.currentTarget;
+            const rect = progressBar.getBoundingClientRect();
+            const clickX = event.clientX - rect.left;
+            const percent = (clickX / rect.width) * 100;
+            jumpToPercent(percent);
+        }
+
+        // 更新阅读进度
+        function updateReadingProgress() {
+            if (!currentText) return;
+            
+            const scrollTop = window.scrollY;
+            const scrollHeight = document.body.scrollHeight - window.innerHeight;
+            const progress = scrollHeight > 0 ? (scrollTop / scrollHeight) * 100 : 0;
+            
+            document.getElementById('progressFill').style.width = progress + '%';
+            document.getElementById('readingProgress').textContent = Math.round(progress) + '%';
+            
+            // 计算当前页数（假设每1000字符为一页）
+            const currentCharPos = Math.round((currentText.length * progress) / 100);
+            const currentPage = Math.ceil(currentCharPos / 1000);
+            const totalPages = Math.ceil(currentText.length / 1000);
+            
+            document.getElementById('currentPage').textContent = currentPage;
+            document.getElementById('totalPages').textContent = totalPages;
+        }
+
+        // 统计总字数
+        function updateTotalWords() {
+            if (currentText) {
+                totalWords = currentText.length;
+            }
+        }
+
+        // 键盘快捷键
+        function handleKeyboardShortcuts(event) {
+            // 防止在输入框中触发快捷键
+            if (event.target.tagName === 'INPUT') return;
+            
+            switch(event.key) {
+                case ' ': // 空格键：开始/暂停自动滚动
+                    event.preventDefault();
+                    toggleAutoScroll();
+                    break;
+                case 'ArrowUp': // 上箭头：向上滚动
+                    event.preventDefault();
+                    window.scrollBy(0, -100);
+                    break;
+                case 'ArrowDown': // 下箭头：向下滚动
+                    event.preventDefault();
+                    window.scrollBy(0, 100);
+                    break;
+                case 'Home': // Home键：跳转到开头
+                    event.preventDefault();
+                    jumpToTop();
+                    break;
+                case 'End': // End键：跳转到结尾
+                    event.preventDefault();
+                    jumpToEnd();
+                    break;
+                case 'f': // F键：全屏
+                case 'F':
+                    if (event.ctrlKey || event.metaKey) return; // 避免与浏览器搜索冲突
+                    event.preventDefault();
+                    toggleFullscreen();
+                    break;
+                case 'd': // D键：深色模式
+                case 'D':
+                    event.preventDefault();
+                    toggleDarkMode();
+                    break;
+            }
+        }
+
+        // 保存用户设置
+        function saveUserSettings() {
+            const settings = {
+                fontSize: document.getElementById('fontSize').value,
+                lineHeight: document.getElementById('lineHeight').value,
+                scrollSpeed: document.getElementById('scrollSpeed').value,
+                textColor: document.getElementById('textColor').value,
+                backgroundColor: document.getElementById('backgroundColor').value,
+                isDarkMode: document.body.classList.contains('dark')
+            };
+            // 注意：这里我们使用变量存储而不是localStorage
+            window.userSettings = settings;
+        }
+
+        // 加载用户设置
+        function loadUserSettings() {
+            // 从内存中加载设置（如果存在）
+            const settings = window.userSettings;
+            if (settings) {
+                document.getElementById('fontSize').value = settings.fontSize;
+                document.getElementById('lineHeight').value = settings.lineHeight;
+                document.getElementById('scrollSpeed').value = settings.scrollSpeed;
+                document.getElementById('textColor').value = settings.textColor;
+                document.getElementById('backgroundColor').value = settings.backgroundColor;
+                
+                updateFontSize(settings.fontSize);
+                updateLineHeight(settings.lineHeight);
+                updateScrollSpeed(settings.scrollSpeed);
+                updateTextColor(settings.textColor);
+                updateBackgroundColor(settings.backgroundColor);
+                
+                if (settings.isDarkMode) {
+                    document.body.classList.add('dark');
+                }
+            }
+        }
+    </script>
+</body>
+</html>
