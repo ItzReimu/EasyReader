@@ -273,6 +273,7 @@ margin-bottom: 30px;
 white-space: pre-wrap;
 word-wrap: break-word;
 transition: all 0.3s ease;
+position: relative;
 }
 body.dark .text-content {
 background: var(--card-dark);
@@ -378,98 +379,56 @@ to { opacity: 1; transform: translateY(0); }
 animation: fadeIn 0.6s ease-out;
 }
 
-/* 工具提示 */
-.tooltip {
-position: relative;
-}
-.tooltip:hover::after {
-content: attr(data-tooltip);
-position: absolute;
-bottom: 100%;
-left: 50%;
-transform: translateX(-50%);
-background: #1f2937;
-color: white;
-padding: 6px 12px;
-border-radius: 6px;
-font-size: 12px;
-white-space: nowrap;
-z-index: 1001;
+/* 批注高亮 */
+.annotation-highlight {
+background-color: #fef08a;
+border-bottom: 2px solid #eab308;
+cursor: pointer;
+border-radius: 2px;
+padding: 0 2px;
 }
 
-/* 自动滚动指示器 */
-.auto-scroll-indicator {
-position: fixed;
-top: 70px;
-right: 20px;
-background: var(--primary-color);
-color: white;
-padding: 8px 16px;
-border-radius: 20px;
-font-size: 12px;
-opacity: 0;
-transform: translateX(100%);
-transition: all 0.3s ease;
-z-index: 1000;
-}
-.auto-scroll-indicator.active {
-opacity: 1;
-transform: translateX(0);
-}
-
-/* 通知消息 */
-.notification {
-position: fixed;
-top: 70px;
-left: 50%;
-transform: translateX(-50%) translateY(-10px);
-padding: 12px 20px;
+/* 批注列表项 */
+.annotation-item {
+padding: 12px;
 border-radius: 8px;
-font-size: 14px;
-font-weight: 500;
-z-index: 1001;
-opacity: 0;
-transition: all 0.3s ease;
-max-width: 400px;
-text-align: center;
-}
-.notification.success {
-background: var(--success-color);
-color: white;
-}
-.notification.warning {
-background: var(--warning-color);
-color: white;
-}
-.notification.error {
-background: var(--error-color);
-color: white;
-}
-.notification.show {
-opacity: 1;
-transform: translateX(-50%) translateY(0);
-}
-
-/* 阅读历史项 */
-.history-item {
-padding: 10px;
-border-radius: 8px;
-background: rgba(79, 70, 229, 0.05);
+background: rgba(251, 191, 36, 0.1);
 margin-bottom: 10px;
 font-size: 14px;
-cursor: pointer;
-transition: all 0.2s;
+border-left: 3px solid #fbbf24;
 }
-.history-item:hover {
-background: rgba(79, 70, 229, 0.1);
-}
-.history-filename {
+.annotation-text {
 font-weight: 500;
+margin-bottom: 6px;
+}
+.annotation-note {
+color: var(--text-light);
+font-size: 13px;
+margin-bottom: 8px;
+}
+.annotation-actions {
+display: flex;
+gap: 8px;
+font-size: 12px;
+}
+.annotation-delete {
+color: var(--error-color);
+cursor: pointer;
+}
+
+/* 目录样式 */
+.toc-item {
+padding: 6px 0;
+cursor: pointer;
+font-size: 14px;
+color: var(--text-light);
+}
+.toc-item:hover {
 color: var(--primary-color);
 }
-.history-progress {
-font-size: 12px;
-color: #64748b;
+.toc-item.current {
+font-weight: bold;
+color: var(--primary-color);
 }
 
 /* 自定义模态框通用样式 */
@@ -641,6 +600,35 @@ to { transform: scale(1); opacity: 1; }
 </div>
 </div>
 
+<!-- 目录 -->
+<div class="reading-settings">
+<h3 style="margin-bottom: 15px; color: var(--primary-color);">📖 目录</h3>
+<div id="tocContainer">
+<p style="color: #64748b; font-size: 14px;">无</p>
+</div>
+</div>
+
+<!-- 批注列表 -->
+<div class="reading-settings">
+<h3 style="margin-bottom: 15px; color: var(--primary-color);">💬 我的批注</h3>
+<div id="annotationsList">
+<!-- 批注将动态插入 -->
+</div>
+<div class="setting-group" style="display: flex; gap: 10px;">
+<button class="control-btn" style="flex: 1;" onclick="exportAnnotations('txt')">
+📥 导出TXT
+</button>
+<button class="control-btn" style="flex: 1;" onclick="exportAnnotations('json')">
+📥 导出JSON
+</button>
+</div>
+<div class="setting-group">
+<button class="control-btn" style="width: 100%; justify-content: center;" onclick="clearAnnotations()">
+🗑️ 清除所有批注
+</button>
+</div>
+</div>
+
 <!-- 阅读历史 -->
 <div class="reading-settings">
 <h3 style="margin-bottom: 15px; color: var(--primary-color);">📚 阅读历史</h3>
@@ -757,6 +745,64 @@ to { transform: scale(1); opacity: 1; }
 </div>
 </div>
 
+<!-- 清除批注确认框 -->
+<div class="resume-modal" id="clearAnnotationsModal" style="display: none;">
+<div class="resume-modal-content">
+<button class="resume-close-btn" onclick="closeClearAnnotationsModal()">&times;</button>
+<h3 style="margin: 0 0 12px; color: var(--primary-color);">🗑️ 清除所有批注？</h3>
+<p style="color: var(--text-light); margin-bottom: 20px; font-size: 14px;">
+此操作将清除所有批注，无法恢复。
+</p>
+<div style="display: flex; gap: 10px; justify-content: flex-end;">
+<button class="control-btn" style="padding: 6px 12px; font-size: 14px;" onclick="closeClearAnnotationsModal()">
+取消
+</button>
+<button class="control-btn" style="background: var(--error-color); color: white; padding: 6px 12px; font-size: 14px;" onclick="confirmClearAnnotations()">
+确定清除
+</button>
+</div>
+</div>
+</div>
+
+<!-- 添加批注弹窗 -->
+<div class="resume-modal" id="addAnnotationModal" style="display: none;">
+<div class="resume-modal-content">
+<button class="resume-close-btn" onclick="closeAnnotationModal()">&times;</button>
+<h3 style="margin: 0 0 12px; color: var(--primary-color);">💬 添加批注</h3>
+<p style="color: var(--text-light); margin-bottom: 12px; font-size: 14px;">
+<strong id="selectedTextPreview"></strong>
+</p>
+<textarea id="annotationNote" rows="3" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border-light); margin-bottom: 16px; font-size: 14px;"></textarea>
+<div style="display: flex; gap: 10px; justify-content: flex-end;">
+<button class="control-btn" style="padding: 6px 12px; font-size: 14px;" onclick="closeAnnotationModal()">
+取消
+</button>
+<button class="control-btn" style="background: var(--primary-color); color: white; padding: 6px 12px; font-size: 14px;" onclick="saveAnnotation()">
+保存批注
+</button>
+</div>
+</div>
+</div>
+
+<!-- 批注详情弹窗 -->
+<div class="resume-modal" id="annotationDetailModal" style="display: none;" onclick="closeAnnotationDetail(event)">
+<div class="resume-modal-content" style="max-width: 400px;" onclick="event.stopPropagation();">
+<button class="resume-close-btn" onclick="closeAnnotationDetail()">&times;</button>
+<h3 style="margin: 0 0 12px; color: var(--primary-color);">📝 批注详情</h3>
+<p><strong>原文：</strong><span id="detailText"></span></p>
+<p><strong>笔记：</strong><span id="detailNote"></span></p>
+<p><strong>时间：</strong><span id="detailTime"></span></p>
+<div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 10px;">
+<button class="control-btn" style="padding: 6px 12px; font-size: 14px;" onclick="closeAnnotationDetail()">
+关闭
+</button>
+<button class="control-btn" style="background: var(--error-color); color: white; padding: 6px 12px; font-size: 14px;" onclick="deleteCurrentAnnotation()">
+删除
+</button>
+</div>
+</div>
+</div>
+
 <script>
 // 全局变量
 let currentText = '';
@@ -771,6 +817,15 @@ let currentMatchIndex = -1;
 
 // 存储待恢复的进度
 window.pendingResumeProgress = null;
+
+// 当前文件指纹
+let currentFileFingerprint = null;
+
+// 目录
+let toc = [];
+
+// 当前批注索引
+let currentAnnotationIndex = null;
 
 // 支持的编码映射表
 const ENCODING_MAP = {
@@ -804,6 +859,18 @@ if (isAutoScrolling && !e.target.closest('.navbar') && !e.target.closest('.sideb
 toggleAutoScroll();
 }
 });
+// 右键选中添加批注
+document.getElementById('textContent').addEventListener('contextmenu', function(e) {
+const selection = window.getSelection();
+const selectedText = selection.toString().trim();
+if (selectedText.length >= 2) {
+e.preventDefault();
+document.getElementById('selectedTextPreview').textContent = selectedText;
+window.tempSelectedText = selectedText;
+document.getElementById('addAnnotationModal').style.display = 'flex';
+document.getElementById('annotationNote').focus();
+}
+});
 }
 
 // 防抖函数
@@ -814,6 +881,188 @@ const context = this, args = arguments;
 clearTimeout(timer);
 timer = setTimeout(() => func.apply(context, args), delay);
 };
+}
+
+// 保存批注
+function saveAnnotation() {
+const note = document.getElementById('annotationNote').value.trim();
+const text = window.tempSelectedText;
+if (!note || !text) {
+showNotification('请输入批注内容', 'warning');
+return;
+}
+const annotations = getAnnotations() || [];
+const newAnnotation = {
+text: text,
+note: note,
+timestamp: new Date().toISOString()
+};
+annotations.push(newAnnotation);
+localStorage.setItem(`annotations_${currentFileFingerprint}`, JSON.stringify(annotations));
+closeAnnotationModal();
+renderAnnotations();
+highlightAnnotatedText();
+showNotification('批注已保存', 'success');
+}
+
+// 获取批注
+function getAnnotations() {
+if (!currentFileFingerprint) return [];
+return JSON.parse(localStorage.getItem(`annotations_${currentFileFingerprint}`) || '[]');
+}
+
+// 渲染批注列表
+function renderAnnotations() {
+const list = document.getElementById('annotationsList');
+const annotations = getAnnotations();
+list.innerHTML = annotations.map((ann, index) => `
+<div class="annotation-item">
+<div class="annotation-text">${ann.text}</div>
+<div class="annotation-note">${ann.note}</div>
+<div class="annotation-actions">
+<span class="annotation-delete" onclick="deleteAnnotation(${index})">🗑️ 删除</span>
+</div>
+</div>
+`).join('');
+}
+
+// 删除批注
+function deleteAnnotation(index) {
+const annotations = getAnnotations();
+annotations.splice(index, 1);
+localStorage.setItem(`annotations_${currentFileFingerprint}`, JSON.stringify(annotations));
+renderAnnotations();
+highlightAnnotatedText();
+showNotification('批注已删除', 'warning');
+}
+
+// 清除所有批注
+function clearAnnotations() {
+if (!currentFileFingerprint) return;
+document.getElementById('clearAnnotationsModal').style.display = 'flex';
+}
+
+// 导出批注
+function exportAnnotations(format) {
+const annotations = getAnnotations();
+if (annotations.length === 0) {
+showNotification('没有批注可导出', 'warning');
+return;
+}
+let content = '';
+if (format === 'txt') {
+content = annotations.map(a => `【批注】
+原文：${a.text}
+笔记：${a.note}
+时间：${new Date(a.timestamp).toLocaleString()}
+---
+`).join('');
+} else {
+content = JSON.stringify(annotations, null, 2);
+}
+const blob = new Blob([content], { type: 'text/' + format });
+const url = URL.createObjectURL(blob);
+const a = document.createElement('a');
+a.href = url;
+a.download = `EasyReader_批注_${new Date().toISOString().split('T')[0]}.${format}`;
+a.click();
+URL.revokeObjectURL(url);
+showNotification('批注已导出', 'success');
+}
+
+// 转义 HTML 特殊字符
+function escapeHtml(text) {
+const div = document.createElement('div');
+div.textContent = text;
+return div.innerHTML;
+}
+
+// 高亮已批注的文本（完全修复版）
+function highlightAnnotatedText() {
+if (!currentText) return;
+const container = document.getElementById('textContent');
+const annotations = getAnnotations();
+
+// 创建文档片段
+const fragment = document.createDocumentFragment();
+const lines = currentText.split('\n');
+
+// 为每行创建文本节点
+lines.forEach((line, lineIndex) => {
+const lineDiv = document.createElement('div');
+let remainingLine = line;
+
+// 按顺序处理每个批注
+const lineAnnotations = annotations
+.filter(ann => line.includes(ann.text))
+.sort((a, b) => line.indexOf(a.text) - line.indexOf(b.text));
+
+lineAnnotations.forEach(ann => {
+const startIndex = remainingLine.indexOf(ann.text);
+if (startIndex === -1) return;
+
+// 添加前置文本
+if (startIndex > 0) {
+lineDiv.appendChild(document.createTextNode(remainingLine.substring(0, startIndex)));
+}
+
+// 添加高亮文本
+const span = document.createElement('span');
+span.className = 'annotation-highlight';
+span.textContent = ann.text;
+span.dataset.note = ann.note;
+span.dataset.timestamp = ann.timestamp;
+span.onclick = function(e) {
+e.stopPropagation();
+showAnnotationDetail(e, ann.text, ann.note, new Date(ann.timestamp).toLocaleString(), getAnnotations().indexOf(ann));
+};
+lineDiv.appendChild(span);
+
+// 更新剩余文本
+remainingLine = remainingLine.substring(startIndex + ann.text.length);
+});
+
+// 添加剩余文本
+if (remainingLine) {
+lineDiv.appendChild(document.createTextNode(remainingLine));
+}
+
+fragment.appendChild(lineDiv);
+});
+
+// 替换内容
+container.innerHTML = '';
+container.appendChild(fragment);
+}
+
+// 显示批注详情
+function showAnnotationDetail(event, text, note, time, index) {
+event.stopPropagation();
+document.getElementById('detailText').textContent = text;
+document.getElementById('detailNote').textContent = note;
+document.getElementById('detailTime').textContent = time;
+currentAnnotationIndex = index;
+document.getElementById('annotationDetailModal').style.display = 'flex';
+}
+
+// 关闭批注详情
+function closeAnnotationDetail(event) {
+document.getElementById('annotationDetailModal').style.display = 'none';
+currentAnnotationIndex = null;
+}
+
+// 删除当前批注
+function deleteCurrentAnnotation() {
+if (currentAnnotationIndex === null) return;
+deleteAnnotation(currentAnnotationIndex);
+closeAnnotationDetail();
+}
+
+// 关闭批注弹窗
+function closeAnnotationModal() {
+document.getElementById('addAnnotationModal').style.display = 'none';
+document.getElementById('annotationNote').value = '';
+window.tempSelectedText = null;
 }
 
 // 设置拖拽上传功能
@@ -862,12 +1111,10 @@ const headSize = Math.min(file.size, 512);
 const tailSize = Math.min(file.size, 512);
 const head = file.slice(0, headSize);
 const tail = file.size > 512 ? file.slice(file.size - tailSize, file.size) : head;
-
 const [headBuf, tailBuf] = await Promise.all([
 readFileAsArrayBuffer(head),
 readFileAsArrayBuffer(tail)
 ]);
-
 const headHex = Array.from(new Uint8Array(headBuf)).slice(0, 8).map(b => b.toString(16).padStart(2, '0')).join('');
 const tailHex = Array.from(new Uint8Array(tailBuf)).slice(-8).map(b => b.toString(16).padStart(2, '0')).join('');
 return `${file.name}_${file.size}_${file.lastModified}_${headHex}_${tailHex}`;
@@ -893,6 +1140,7 @@ showLoadingMessage();
 
 // 生成指纹
 const fingerprint = await generateFileFingerprint(file);
+currentFileFingerprint = fingerprint;
 const history = getHistory();
 const record = history[fingerprint];
 
@@ -908,7 +1156,7 @@ document.getElementById('progressContainer').style.display = 'flex';
 updateTotalWords();
 updateReadingProgress();
 
-// 恢复阅读位置 - 使用自定义 UI 提示
+// 恢复阅读位置
 if (record && record.progress > 0) {
 setTimeout(() => {
 const modal = document.getElementById('resumeModal');
@@ -924,6 +1172,19 @@ searchMatches = [];
 currentMatchIndex = -1;
 document.getElementById('searchInput').value = '';
 document.getElementById('searchResultInfo').textContent = '';
+
+// 加载批注
+renderAnnotations();
+highlightAnnotatedText();
+
+// 生成目录
+generateTOC(currentText);
+
+// 自动关闭侧边栏（移动端）
+if (window.innerWidth <= 768 && document.getElementById('sidebar').classList.contains('open')) {
+toggleSidebar();
+}
+window.scrollTo(0, 0);
 } else {
 showEncodingSelector();
 }
@@ -932,6 +1193,39 @@ console.error('读取文件失败:', error);
 showNotification('读取文件失败，请重试', 'error');
 hideLoadingMessage();
 }
+}
+
+// 生成目录
+function generateTOC(text) {
+const lines = text.split('\n');
+const toc = [];
+const titleRegex = /^(第[零一二三四五六七八九十百千]+[章节回集卷]|第\d+[章节回集卷]|引子|楔子|尾声|后记|序言|第一章|第二章|第三章|第四章|第五章|第六章|第七章|第八章|第九章|第十章)/i;
+lines.forEach((line, index) => {
+if (line.trim().length > 0 && titleRegex.test(line.trim())) {
+toc.push({ text: line.trim(), index: index });
+}
+});
+const container = document.getElementById('tocContainer');
+if (toc.length === 0) {
+container.innerHTML = '<p style="color: #64748b;">未检测到章节</p>';
+return;
+}
+container.innerHTML = toc.map((item, i) => `
+<div class="toc-item" onclick="jumpToLine(${item.index})">${item.text}</div>
+`).join('');
+window.toc = toc;
+}
+
+// 跳转到某一行
+function jumpToLine(lineIndex) {
+const lines = currentText.split('\n');
+let charIndex = 0;
+for (let i = 0; i < lineIndex && i < lines.length; i++) {
+charIndex += lines[i].length + 1;
+}
+const targetPosition = (document.body.scrollHeight - window.innerHeight) * (charIndex / currentText.length);
+window.scrollTo({ top: targetPosition, behavior: 'smooth' });
+showNotification('已跳转到章节', 'success');
 }
 
 // 保存阅读进度
@@ -1382,15 +1676,12 @@ currentMatchIndex = -1;
 document.getElementById('searchResultInfo').textContent = '';
 return;
 }
-
 const regex = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
 const matches = [...currentText.matchAll(regex)];
 searchMatches = matches;
 currentMatchIndex = matches.length > 0 ? 0 : -1;
-
 const highlightedText = currentText.replace(regex, match => `<mark class="highlight">${match}</mark>`);
 contentEl.innerHTML = highlightedText;
-
 document.getElementById('searchResultInfo').textContent = 
 matches.length > 0 ? `找到 ${matches.length} 个匹配项` : '未找到匹配内容';
 }
@@ -1483,10 +1774,28 @@ showNotification('阅读历史已清除', 'success');
 closeClearHistoryModal();
 }
 
-// 点击遮罩关闭模态框
+// 关闭“清除批注”提示框
+function closeClearAnnotationsModal() {
+document.getElementById('clearAnnotationsModal').style.display = 'none';
+}
+
+// 确认清除批注
+function confirmClearAnnotations() {
+if (!currentFileFingerprint) return;
+localStorage.removeItem(`annotations_${currentFileFingerprint}`);
+renderAnnotations();
+highlightAnnotatedText();
+showNotification('所有批注已清除', 'success');
+closeClearAnnotationsModal();
+}
+
+// 点击遮罩关闭
 document.getElementById('resumeModal')?.addEventListener('click', e => e.target === e.currentTarget && closeResumeModal());
 document.getElementById('selectFileModal')?.addEventListener('click', e => e.target === e.currentTarget && closeSelectFileModal());
 document.getElementById('clearHistoryModal')?.addEventListener('click', e => e.target === e.currentTarget && closeClearHistoryModal());
+document.getElementById('clearAnnotationsModal')?.addEventListener('click', e => e.target === e.currentTarget && closeClearAnnotationsModal());
+document.getElementById('addAnnotationModal')?.addEventListener('click', e => e.target === e.currentTarget && closeAnnotationModal());
+document.getElementById('annotationDetailModal')?.addEventListener('click', closeAnnotationDetail);
 </script>
 </body>
 </html>
