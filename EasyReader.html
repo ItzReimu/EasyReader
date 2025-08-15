@@ -1,1372 +1,1500 @@
+
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EasyReader</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+<style>
+body {
+background-color: white; /* Ensure the iframe has a white background */
+}
 
-        :root {
-            --primary-color: #4f46e5;
-            --secondary-color: #6366f1;
-            --background-light: #f8fafc;
-            --background-dark: #0f172a;
-            --text-light: #334155;
-            --text-dark: #e2e8f0;
-            --card-light: #ffffff;
-            --card-dark: #1e293b;
-            --border-light: #e2e8f0;
-            --border-dark: #334155;
-            --success-color: #10b981;
-            --warning-color: #f59e0b;
-            --error-color: #ef4444;
-        }
 
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: var(--background-light);
-            color: var(--text-light);
-            transition: all 0.3s ease;
-            overflow-x: hidden;
-        }
-
-        body.dark {
-            background: var(--background-dark);
-            color: var(--text-dark);
-        }
-
-        /* 顶部导航栏 */
-        .navbar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 60px;
-            background: var(--card-light);
-            border-bottom: 1px solid var(--border-light);
-            backdrop-filter: blur(20px);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 20px;
-            z-index: 1000;
-            transition: all 0.3s ease;
-        }
-
-        body.dark .navbar {
-            background: rgba(15, 23, 42, 0.9);
-            border-bottom-color: var(--border-dark);
-        }
-
-        .logo {
-            font-size: 20px;
-            font-weight: 700;
-            color: var(--primary-color);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .nav-controls {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .control-btn {
-            background: none;
-            border: none;
-            padding: 8px 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            color: var(--text-light);
-            transition: all 0.2s ease;
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        body.dark .control-btn {
-            color: var(--text-dark);
-        }
-
-        .control-btn:hover {
-            background: rgba(79, 70, 229, 0.1);
-            color: var(--primary-color);
-        }
-
-        /* 主要内容区域 */
-        .main-container {
-            margin-top: 60px;
-            min-height: calc(100vh - 60px);
-            display: flex;
-        }
-
-        /* 侧边栏 */
-        .sidebar {
-            width: 300px;
-            background: var(--card-light);
-            border-right: 1px solid var(--border-light);
-            padding: 20px;
-            transition: all 0.3s ease;
-            position: fixed;
-            height: calc(100vh - 60px);
-            overflow-y: auto;
-            transform: translateX(-100%);
-        }
-
-        body.dark .sidebar {
-            background: var(--card-dark);
-            border-right-color: var(--border-dark);
-        }
-
-        .sidebar.open {
-            transform: translateX(0);
-        }
-
-        .file-upload {
-            border: 2px dashed var(--border-light);
-            border-radius: 12px;
-            padding: 30px 20px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-bottom: 20px;
-        }
-
-        body.dark .file-upload {
-            border-color: var(--border-dark);
-        }
-
-        .file-upload:hover {
-            border-color: var(--primary-color);
-            background: rgba(79, 70, 229, 0.05);
-        }
-
-        .file-upload input {
-            display: none;
-        }
-
-        .reading-settings {
-            background: rgba(79, 70, 229, 0.05);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-
-        .setting-group {
-            margin-bottom: 15px;
-        }
-
-        .setting-label {
-            display: block;
-            font-size: 14px;
-            font-weight: 500;
-            margin-bottom: 8px;
-            color: var(--text-light);
-        }
-
-        body.dark .setting-label {
-            color: var(--text-dark);
-        }
-
-        .setting-input {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid var(--border-light);
-            border-radius: 6px;
-            background: var(--card-light);
-            color: var(--text-light);
-            font-size: 14px;
-        }
-
-        body.dark .setting-input {
-            background: var(--background-dark);
-            border-color: var(--border-dark);
-            color: var(--text-dark);
-        }
-
-        .slider {
-            -webkit-appearance: none;
-            height: 6px;
-            border-radius: 3px;
-            background: var(--border-light);
-            outline: none;
-        }
-
-        body.dark .slider {
-            background: var(--border-dark);
-        }
-
-        .slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: var(--primary-color);
-            cursor: pointer;
-        }
-
-        /* 编码状态指示器 */
-        .encoding-status {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 500;
-            margin-top: 8px;
-        }
-
-        .encoding-status.success {
-            background: rgba(16, 185, 129, 0.1);
-            color: var(--success-color);
-        }
-
-        .encoding-status.warning {
-            background: rgba(245, 158, 11, 0.1);
-            color: var(--warning-color);
-        }
-
-        .encoding-status.error {
-            background: rgba(239, 68, 68, 0.1);
-            color: var(--error-color);
-        }
-
-        /* 阅读区域 */
-        .reading-area {
-            flex: 1;
-            margin-left: 0;
-            transition: all 0.3s ease;
-        }
-
-        .reading-area.sidebar-open {
-            margin-left: 300px;
-        }
-
-        .reader-container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 40px 20px;
-            line-height: 1.8;
-            font-size: 16px;
-        }
-
-        .chapter-title {
-            font-size: 28px;
-            font-weight: 700;
-            margin-bottom: 30px;
-            color: var(--primary-color);
-            text-align: center;
-        }
-
-        .text-content {
-            background: var(--card-light);
-            padding: 40px;
-            border-radius: 16px;
-            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
-            margin-bottom: 30px;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            transition: all 0.3s ease;
-        }
-
-        body.dark .text-content {
-            background: var(--card-dark);
-            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
-        }
-
-        /* 阅读进度条 */
-        .progress-container {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 60px;
-            background: var(--card-light);
-            border-top: 1px solid var(--border-light);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 20px;
-            z-index: 1000;
-        }
-
-        body.dark .progress-container {
-            background: rgba(15, 23, 42, 0.9);
-            border-top-color: var(--border-dark);
-        }
-
-        .progress-bar {
-            flex: 1;
-            height: 4px;
-            background: var(--border-light);
-            border-radius: 2px;
-            margin: 0 20px;
-            position: relative;
-            cursor: pointer;
-        }
-
-        body.dark .progress-bar {
-            background: var(--border-dark);
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: var(--primary-color);
-            border-radius: 2px;
-            transition: width 0.3s ease;
-        }
-
-        .progress-info {
-            font-size: 14px;
-            color: var(--text-light);
-            white-space: nowrap;
-        }
-
-        body.dark .progress-info {
-            color: var(--text-dark);
-        }
-
-        /* 空状态 */
-        .empty-state {
-            text-align: center;
-            padding: 80px 20px;
-            color: #94a3b8;
-        }
-
-        .empty-icon {
-            font-size: 64px;
-            margin-bottom: 20px;
-        }
-
-        /* 加载状态 */
-        .loading-spinner {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 2px solid var(--border-light);
-            border-radius: 50%;
-            border-top-color: var(--primary-color);
-            animation: spin 1s ease-in-out infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* 响应式设计 */
-        @media (max-width: 768px) {
-            .sidebar {
-                width: 280px;
-            }
-
-            .reading-area.sidebar-open {
-                margin-left: 0;
-            }
-
-            .reader-container {
-                padding: 20px 15px;
-            }
-
-            .text-content {
-                padding: 20px;
-            }
-
-            .nav-controls .control-btn span {
-                display: none;
-            }
-        }
-
-        /* 动画效果 */
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .text-content {
-            animation: fadeIn 0.6s ease-out;
-        }
-
-        /* 工具提示 */
-        .tooltip {
-            position: relative;
-        }
-
-        .tooltip:hover::after {
-            content: attr(data-tooltip);
-            position: absolute;
-            bottom: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #1f2937;
-            color: white;
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            white-space: nowrap;
-            z-index: 1001;
-        }
-
-        /* 自动滚动指示器 */
-        .auto-scroll-indicator {
-            position: fixed;
-            top: 70px;
-            right: 20px;
-            background: var(--primary-color);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 12px;
-            opacity: 0;
-            transform: translateX(100%);
-            transition: all 0.3s ease;
-            z-index: 1000;
-        }
-
-        .auto-scroll-indicator.active {
-            opacity: 1;
-            transform: translateX(0);
-        }
-
-        /* 通知消息 */
-        .notification {
-            position: fixed;
-            top: 70px;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 12px 20px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 500;
-            z-index: 1001;
-            opacity: 0;
-            transition: all 0.3s ease;
-            max-width: 400px;
-            text-align: center;
-        }
-
-        .notification.success {
-            background: var(--success-color);
-            color: white;
-        }
-
-        .notification.warning {
-            background: var(--warning-color);
-            color: white;
-        }
-
-        .notification.error {
-            background: var(--error-color);
-            color: white;
-        }
-
-        .notification.show {
-            opacity: 1;
-            transform: translateX(-50%) translateY(0);
-        }
-    </style>
+</style>
 </head>
 <body>
-    <!-- 顶部导航栏 -->
-    <div class="navbar">
-        <div class="logo">
-            📚 EasyReader
-        </div>
-        <div class="nav-controls">
-            <button class="control-btn tooltip" data-tooltip="打开设置" onclick="toggleSidebar()">
-                ⚙️ <span>设置</span>
-            </button>
-            <button class="control-btn tooltip" data-tooltip="自动滚动" onclick="toggleAutoScroll()">
-                ⏯️ <span>自动滚动</span>
-            </button>
-            <button class="control-btn tooltip" data-tooltip="全屏模式" onclick="toggleFullscreen()">
-                📺 <span>全屏</span>
-            </button>
-            <button class="control-btn tooltip" data-tooltip="深色模式" onclick="toggleDarkMode()">
-                🌙 <span>深色</span>
-            </button>
-        </div>
-    </div>
+    <!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EasyReader</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+--primary-color: #4f46e5;
+--secondary-color: #6366f1;
+--background-light: #f8fafc;
+--background-dark: #0f172a;
+--text-light: #334155;
+--text-dark: #e2e8f0;
+--card-light: #ffffff;
+--card-dark: #1e293b;
+--border-light: #e2e8f0;
+--border-dark: #334155;
+--success-color: #10b981;
+--warning-color: #f59e0b;
+--error-color: #ef4444;
+}
+body {
+font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+background: var(--background-light);
+color: var(--text-light);
+transition: all 0.3s ease;
+overflow-x: hidden;
+}
+body.dark {
+background: var(--background-dark);
+color: var(--text-dark);
+}
 
-    <!-- 自动滚动指示器 -->
-    <div class="auto-scroll-indicator" id="autoScrollIndicator">
-        自动滚动中... 点击任意位置暂停
-    </div>
+/* 顶部导航栏 */
+.navbar {
+position: fixed;
+top: 0;
+left: 0;
+right: 0;
+height: 60px;
+background: var(--card-light);
+border-bottom: 1px solid var(--border-light);
+backdrop-filter: blur(20px);
+display: flex;
+align-items: center;
+justify-content: space-between;
+padding: 0 20px;
+z-index: 1000;
+transition: all 0.3s ease;
+}
+body.dark .navbar {
+background: rgba(15, 23, 42, 0.9);
+border-bottom-color: var(--border-dark);
+}
+.logo {
+font-size: 20px;
+font-weight: 700;
+color: var(--primary-color);
+display: flex;
+align-items: center;
+gap: 8px;
+}
+.nav-controls {
+display: flex;
+align-items: center;
+gap: 15px;
+}
+.control-btn {
+background: none;
+border: none;
+padding: 8px 12px;
+border-radius: 8px;
+cursor: pointer;
+color: var(--text-light);
+transition: all 0.2s ease;
+font-size: 14px;
+display: flex;
+align-items: center;
+gap: 5px;
+}
+body.dark .control-btn {
+color: var(--text-dark);
+}
+.control-btn:hover {
+background: rgba(79, 70, 229, 0.1);
+color: var(--primary-color);
+}
 
-    <!-- 主要内容区域 -->
-    <div class="main-container">
-        <!-- 侧边栏 -->
-        <div class="sidebar" id="sidebar">
-            <!-- 文件上传区域 -->
-            <div class="file-upload" onclick="document.getElementById('fileInput').click()">
-                <div style="font-size: 32px; margin-bottom: 10px;">📄</div>
-                <div style="font-weight: 600; margin-bottom: 5px;">选择TXT文件</div>
-                <div style="font-size: 14px; color: #64748b;">点击上传或拖拽文件到这里</div>
-                <input type="file" id="fileInput" accept=".txt" onchange="loadFile(event)">
-            </div>
+/* 主要内容区域 */
+.main-container {
+margin-top: 60px;
+min-height: calc(100vh - 60px);
+display: flex;
+}
 
-            <!-- 编码设置 -->
-            <div class="reading-settings">
-                <h3 style="margin-bottom: 15px; color: var(--primary-color);">🔧 编码设置</h3>
-                
-                <div class="setting-group">
-                    <label class="setting-label">当前编码</label>
-                    <div id="currentEncoding" class="encoding-status success" style="display: none;">
-                        <span>✅</span>
-                        <span id="encodingName">自动检测</span>
-                    </div>
-                </div>
-                
-                <div class="setting-group">
-                    <label class="setting-label">手动选择编码</label>
-                    <select class="setting-input" id="manualEncoding" onchange="reloadWithEncoding()">
-                        <option value="">自动检测 (推荐)</option>
-                        <option value="UTF-8">UTF-8 (Unicode)</option>
-                        <option value="GBK">GBK (中文Windows)</option>
-                        <option value="GB2312">GB2312 (简体中文)</option>
-                        <option value="GB18030">GB18030 (中文扩展)</option>
-                        <option value="Big5">Big5 (繁体中文)</option>
-                        <option value="UTF-16LE">UTF-16LE (Windows Unicode)</option>
-                        <option value="UTF-16BE">UTF-16BE (大端序Unicode)</option>
-                        <option value="Shift_JIS">Shift_JIS (日文)</option>
-                        <option value="EUC-KR">EUC-KR (韩文)</option>
-                        <option value="ISO-8859-1">ISO-8859-1 (拉丁文)</option>
-                        <option value="Windows-1252">Windows-1252 (西欧)</option>
-                    </select>
-                </div>
+/* 侧边栏 */
+.sidebar {
+width: 300px;
+background: var(--card-light);
+border-right: 1px solid var(--border-light);
+padding: 20px;
+transition: all 0.3s ease;
+position: fixed;
+height: calc(100vh - 60px);
+overflow-y: auto;
+transform: translateX(-100%);
+z-index: 1000;
+}
+body.dark .sidebar {
+background: var(--card-dark);
+border-right-color: var(--border-dark);
+}
+.sidebar.open {
+transform: translateX(0);
+}
 
-                <div class="setting-group">
-                    <small style="color: #64748b; font-size: 12px;">
-                        💡 提示：如果文字显示乱码，请手动选择正确的编码格式
-                    </small>
-                </div>
-            </div>
+.file-upload {
+border: 2px dashed var(--border-light);
+border-radius: 12px;
+padding: 30px 20px;
+text-align: center;
+cursor: pointer;
+transition: all 0.3s ease;
+margin-bottom: 20px;
+}
+body.dark .file-upload {
+border-color: var(--border-dark);
+}
+.file-upload:hover {
+border-color: var(--primary-color);
+background: rgba(79, 70, 229, 0.05);
+}
+.file-upload input {
+display: none;
+}
 
-            <!-- 阅读设置 -->
-            <div class="reading-settings">
-                <h3 style="margin-bottom: 15px; color: var(--primary-color);">📖 阅读设置</h3>
-                
-                <div class="setting-group">
-                    <label class="setting-label">字体大小</label>
-                    <input type="range" class="slider" id="fontSize" min="12" max="24" value="16" 
-                           oninput="updateFontSize(this.value)">
-                    <small id="fontSizeValue">16px</small>
-                </div>
+.reading-settings {
+background: rgba(79, 70, 229, 0.05);
+border-radius: 12px;
+padding: 20px;
+margin-bottom: 20px;
+}
+.setting-group {
+margin-bottom: 15px;
+}
+.setting-label {
+display: block;
+font-size: 14px;
+font-weight: 500;
+margin-bottom: 8px;
+color: var(--text-light);
+}
+body.dark .setting-label {
+color: var(--text-dark);
+}
+.setting-input {
+width: 100%;
+padding: 8px 12px;
+border: 1px solid var(--border-light);
+border-radius: 6px;
+background: var(--card-light);
+color: var(--text-light);
+font-size: 14px;
+}
+body.dark .setting-input {
+background: var(--background-dark);
+border-color: var(--border-dark);
+color: var(--text-dark);
+}
+.slider {
+-webkit-appearance: none;
+width: 100%;
+height: 6px;
+border-radius: 3px;
+background: var(--border-light);
+outline: none;
+}
+body.dark .slider {
+background: var(--border-dark);
+}
+.slider::-webkit-slider-thumb {
+-webkit-appearance: none;
+width: 18px;
+height: 18px;
+border-radius: 50%;
+background: var(--primary-color);
+cursor: pointer;
+}
 
-                <div class="setting-group">
-                    <label class="setting-label">行间距</label>
-                    <input type="range" class="slider" id="lineHeight" min="1.4" max="2.5" step="0.1" value="1.8" 
-                           oninput="updateLineHeight(this.value)">
-                    <small id="lineHeightValue">1.8</small>
-                </div>
+/* 搜索结果样式 */
+.highlight {
+background-color: #fbbf24;
+color: #000;
+padding: 2px 0;
+border-radius: 2px;
+}
+.search-result-info {
+font-size: 12px;
+color: #64748b;
+margin-top: 5px;
+}
 
-                <div class="setting-group">
-                    <label class="setting-label">自动滚动速度</label>
-                    <input type="range" class="slider" id="scrollSpeed" min="1" max="10" value="3" 
-                           oninput="updateScrollSpeed(this.value)">
-                    <small id="scrollSpeedValue">中等</small>
-                </div>
+/* 编码状态指示器 */
+.encoding-status {
+display: flex;
+align-items: center;
+gap: 8px;
+padding: 8px 12px;
+border-radius: 6px;
+font-size: 12px;
+font-weight: 500;
+margin-top: 8px;
+}
+.encoding-status.success {
+background: rgba(16, 185, 129, 0.1);
+color: var(--success-color);
+}
+.encoding-status.warning {
+background: rgba(245, 158, 11, 0.1);
+color: var(--warning-color);
+}
+.encoding-status.error {
+background: rgba(239, 68, 68, 0.1);
+color: var(--error-color);
+}
 
-                <div class="setting-group">
-                    <label class="setting-label">字体颜色</label>
-                    <input type="color" class="setting-input" id="textColor" value="#334155" 
-                           onchange="updateTextColor(this.value)">
-                </div>
+/* 阅读区域 */
+.reading-area {
+flex: 1;
+margin-left: 0;
+transition: all 0.3s ease;
+}
+.reading-area.sidebar-open {
+margin-left: 300px;
+}
+.reader-container {
+max-width: 800px;
+margin: 0 auto;
+padding: 40px 20px;
+line-height: 1.8;
+font-size: 16px;
+}
+.chapter-title {
+font-size: 28px;
+font-weight: 700;
+margin-bottom: 30px;
+color: var(--primary-color);
+text-align: center;
+}
+.text-content {
+background: var(--card-light);
+padding: 40px;
+border-radius: 16px;
+box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+margin-bottom: 30px;
+white-space: pre-wrap;
+word-wrap: break-word;
+transition: all 0.3s ease;
+}
+body.dark .text-content {
+background: var(--card-dark);
+box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+}
 
-                <div class="setting-group">
-                    <label class="setting-label">背景颜色</label>
-                    <input type="color" class="setting-input" id="backgroundColor" value="#ffffff" 
-                           onchange="updateBackgroundColor(this.value)">
-                </div>
-            </div>
+/* 阅读进度条 */
+.progress-container {
+position: fixed;
+bottom: 0;
+left: 0;
+right: 0;
+height: 60px;
+background: var(--card-light);
+border-top: 1px solid var(--border-light);
+display: flex;
+align-items: center;
+justify-content: space-between;
+padding: 0 20px;
+z-index: 1000;
+}
+body.dark .progress-container {
+background: rgba(15, 23, 42, 0.9);
+border-top-color: var(--border-dark);
+}
+.progress-bar {
+flex: 1;
+height: 4px;
+background: var(--border-light);
+border-radius: 2px;
+margin: 0 20px;
+position: relative;
+cursor: pointer;
+}
+body.dark .progress-bar {
+background: var(--border-dark);
+}
+.progress-fill {
+height: 100%;
+background: var(--primary-color);
+border-radius: 2px;
+transition: width 0.3s ease;
+}
+.progress-info {
+font-size: 14px;
+color: var(--text-light);
+white-space: nowrap;
+}
+body.dark .progress-info {
+color: var(--text-dark);
+}
 
-            <!-- 快速跳转 -->
-            <div class="reading-settings">
-                <h3 style="margin-bottom: 15px; color: var(--primary-color);">🎯 快速跳转</h3>
-                
-                <div class="setting-group">
-                    <label class="setting-label">跳转到百分比</label>
-                    <input type="number" class="setting-input" id="jumpPercent" min="0" max="100" 
-                           placeholder="输入0-100" onchange="jumpToPercent(this.value)">
-                </div>
+/* 空状态 */
+.empty-state {
+text-align: center;
+padding: 80px 20px;
+color: #94a3b8;
+}
+.empty-icon {
+font-size: 64px;
+margin-bottom: 20px;
+}
 
-                <div class="setting-group">
-                    <button class="control-btn" style="width: 100%; justify-content: center;" onclick="jumpToTop()">
-                        ⬆️ 跳转到开头
-                    </button>
-                </div>
+/* 加载状态 */
+.loading-spinner {
+display: inline-block;
+width: 20px;
+height: 20px;
+border: 2px solid var(--border-light);
+border-radius: 50%;
+border-top-color: var(--primary-color);
+animation: spin 1s ease-in-out infinite;
+}
+@keyframes spin {
+to { transform: rotate(360deg); }
+}
 
-                <div class="setting-group">
-                    <button class="control-btn" style="width: 100%; justify-content: center;" onclick="jumpToEnd()">
-                        ⬇️ 跳转到结尾
-                    </button>
-                </div>
-            </div>
-        </div>
+/* 响应式设计 */
+@media (max-width: 768px) {
+.sidebar {
+width: 280px;
+}
+.reading-area.sidebar-open {
+margin-left: 0;
+}
+.reader-container {
+padding: 20px 15px;
+}
+.text-content {
+padding: 20px;
+}
+.nav-controls .control-btn span {
+display: none;
+}
+}
 
-        <!-- 阅读区域 -->
-        <div class="reading-area" id="readingArea">
-            <div class="reader-container">
-                <div class="empty-state" id="emptyState">
-                    <div class="empty-icon">📖</div>
-                    <h3>欢迎使用EasyReader</h3>
-                    <p style="margin-top: 10px;">点击左侧设置按钮上传您的TXT文件开始阅读</p>
-                    <p style="margin-top: 5px; font-size: 14px;">支持多种编码格式：UTF-8、GBK、GB2312、Big5等</p>
-                </div>
-                
-                <div id="contentArea" style="display: none;">
-                    <h1 class="chapter-title" id="chapterTitle">文档内容</h1>
-                    <div class="text-content" id="textContent"></div>
-                </div>
-            </div>
-        </div>
-    </div>
+/* 动画效果 */
+@keyframes fadeIn {
+from { opacity: 0; transform: translateY(20px); }
+to { opacity: 1; transform: translateY(0); }
+}
+.text-content {
+animation: fadeIn 0.6s ease-out;
+}
 
-    <!-- 底部进度条 -->
-    <div class="progress-container" id="progressContainer" style="display: none;">
-        <div class="progress-info">
-            <span id="currentPage">0</span>/<span id="totalPages">0</span>
-        </div>
-        <div class="progress-bar" onclick="jumpToPosition(event)">
-            <div class="progress-fill" id="progressFill"></div>
-        </div>
-        <div class="progress-info">
-            <span id="readingProgress">0%</span>
-        </div>
-    </div>
+/* 工具提示 */
+.tooltip {
+position: relative;
+}
+.tooltip:hover::after {
+content: attr(data-tooltip);
+position: absolute;
+bottom: 100%;
+left: 50%;
+transform: translateX(-50%);
+background: #1f2937;
+color: white;
+padding: 6px 12px;
+border-radius: 6px;
+font-size: 12px;
+white-space: nowrap;
+z-index: 1001;
+}
 
-    <script>
-        // 全局变量
-        let currentText = '';
-        let currentFile = null;
-        let currentEncoding = '';
-        let autoScrollInterval = null;
-        let autoScrollSpeed = 3;
-        let isAutoScrolling = false;
-        let totalWords = 0;
+/* 自动滚动指示器 */
+.auto-scroll-indicator {
+position: fixed;
+top: 70px;
+right: 20px;
+background: var(--primary-color);
+color: white;
+padding: 8px 16px;
+border-radius: 20px;
+font-size: 12px;
+opacity: 0;
+transform: translateX(100%);
+transition: all 0.3s ease;
+z-index: 1000;
+}
+.auto-scroll-indicator.active {
+opacity: 1;
+transform: translateX(0);
+}
 
-        // 支持的编码映射表
-        const ENCODING_MAP = {
-            'UTF-8': 'utf-8',
-            'GBK': 'gbk',
-            'GB2312': 'gb2312',
-            'GB18030': 'gb18030',
-            'Big5': 'big5',
-            'UTF-16LE': 'utf-16le',
-            'UTF-16BE': 'utf-16be',
-            'Shift_JIS': 'shift_jis',
-            'EUC-KR': 'euc-kr',
-            'ISO-8859-1': 'iso-8859-1',
-            'Windows-1252': 'windows-1252'
-        };
+/* 通知消息 */
+.notification {
+position: fixed;
+top: 70px;
+left: 50%;
+transform: translateX(-50%) translateY(-10px);
+padding: 12px 20px;
+border-radius: 8px;
+font-size: 14px;
+font-weight: 500;
+z-index: 1001;
+opacity: 0;
+transition: all 0.3s ease;
+max-width: 400px;
+text-align: center;
+}
+.notification.success {
+background: var(--success-color);
+color: white;
+}
+.notification.warning {
+background: var(--warning-color);
+color: white;
+}
+.notification.error {
+background: var(--error-color);
+color: white;
+}
+.notification.show {
+opacity: 1;
+transform: translateX(-50%) translateY(0);
+}
 
-        // 初始化
-        document.addEventListener('DOMContentLoaded', function() {
-            loadUserSettings();
-            setupEventListeners();
-            setupDragAndDrop();
-        });
+/* 阅读历史项 */
+.history-item {
+padding: 10px;
+border-radius: 8px;
+background: rgba(79, 70, 229, 0.05);
+margin-bottom: 10px;
+font-size: 14px;
+cursor: pointer;
+transition: all 0.2s;
+}
+.history-item:hover {
+background: rgba(79, 70, 229, 0.1);
+}
+.history-filename {
+font-weight: 500;
+color: var(--primary-color);
+}
+.history-progress {
+font-size: 12px;
+color: #64748b;
+}
 
-        // 设置事件监听器
-        function setupEventListeners() {
-            window.addEventListener('scroll', updateReadingProgress);
-            document.addEventListener('keydown', handleKeyboardShortcuts);
-            
-            // 添加点击事件停止自动滚动
-            document.addEventListener('click', function(e) {
-                if (isAutoScrolling && !e.target.closest('.navbar') && !e.target.closest('.sidebar')) {
-                    toggleAutoScroll();
-                }
-            });
-        }
+/* 自定义模态框通用样式 */
+.resume-modal {
+position: fixed;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+background: rgba(15, 23, 42, 0.6);
+display: flex;
+align-items: center;
+justify-content: center;
+z-index: 2000;
+animation: fadeIn 0.3s ease;
+}
 
-        // 设置拖拽上传功能
-        function setupDragAndDrop() {
-            const fileUpload = document.querySelector('.file-upload');
-            
-            fileUpload.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                fileUpload.style.borderColor = 'var(--primary-color)';
-                fileUpload.style.background = 'rgba(79, 70, 229, 0.1)';
-            });
-            
-            fileUpload.addEventListener('dragleave', (e) => {
-                e.preventDefault();
-                fileUpload.style.borderColor = 'var(--border-light)';
-                fileUpload.style.background = 'transparent';
-            });
-            
-            fileUpload.addEventListener('drop', (e) => {
-                e.preventDefault();
-                fileUpload.style.borderColor = 'var(--border-light)';
-                fileUpload.style.background = 'transparent';
-                
-                const files = e.dataTransfer.files;
-                if (files.length > 0) {
-                    loadFileContent(files[0]);
-                }
-            });
-        }
+.resume-modal-content {
+background: var(--card-light);
+border-radius: 16px;
+box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+padding: 24px;
+width: 90%;
+max-width: 400px;
+position: relative;
+animation: scaleIn 0.3s ease;
+border: 1px solid var(--border-light);
+}
 
-        // 切换侧边栏
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const readingArea = document.getElementById('readingArea');
-            
-            sidebar.classList.toggle('open');
-            readingArea.classList.toggle('sidebar-open');
-        }
+body.dark .resume-modal-content {
+background: var(--card-dark);
+border-color: var(--border-dark);
+}
 
-        // 加载文件
-        function loadFile(event) {
-            const file = event.target.files[0];
-            if (file) {
-                loadFileContent(file);
-            }
-        }
+.resume-close-btn {
+position: absolute;
+top: 12px;
+right: 12px;
+background: none;
+border: none;
+font-size: 24px;
+color: var(--text-light);
+cursor: pointer;
+opacity: 0.7;
+transition: all 0.2s;
+}
 
-        // 读取文件内容 - 增强的编码支持
-        async function loadFileContent(file) {
-            if (!file.type.includes('text') && !file.name.toLowerCase().endsWith('.txt')) {
-                showNotification('请选择TXT格式的文件！', 'error');
-                return;
-            }
+.resume-close-btn:hover {
+opacity: 1;
+transform: scale(1.1);
+}
 
-            currentFile = file;
-            showLoadingMessage();
+@keyframes scaleIn {
+from { transform: scale(0.8); opacity: 0; }
+to { transform: scale(1); opacity: 1; }
+}
+</style>
+</head>
+<body>
 
-            try {
-                // 首先尝试自动检测编码
-                const result = await detectBestEncoding(file);
-                
-                if (result) {
-                    currentText = result.text;
-                    currentEncoding = result.encoding;
-                    displayContent(currentText, file.name, result.encoding);
-                    updateEncodingStatus(result.encoding, result.confidence);
-                    document.getElementById('progressContainer').style.display = 'flex';
-                    updateTotalWords();
-                    updateReadingProgress();
-                } else {
-                    showEncodingSelector();
-                }
-            } catch (error) {
-                console.error('读取文件失败:', error);
-                showNotification('读取文件失败，请重试', 'error');
-                hideLoadingMessage();
-            }
-        }
+<!-- 顶部导航栏 -->
+<div class="navbar">
+<div class="logo"> 📚 EasyReader </div>
+<div class="nav-controls">
+<button class="control-btn tooltip" data-tooltip="打开/关闭设置" onclick="toggleSidebar()">
+⚙️ <span>设置</span>
+</button>
+<button class="control-btn tooltip" data-tooltip="自动滚动" onclick="toggleAutoScroll()">
+⏯️ <span>自动滚动</span>
+</button>
+<button class="control-btn tooltip" data-tooltip="全屏模式" onclick="toggleFullscreen()">
+📺 <span>全屏</span>
+</button>
+<button class="control-btn tooltip" data-tooltip="深色模式" onclick="toggleDarkMode()">
+🌙 <span>深色</span>
+</button>
+</div>
+</div>
 
-        // 增强的编码检测
-        async function detectBestEncoding(file) {
-            const encodings = [
-                'UTF-8',
-                'GBK', 
-                'GB2312',
-                'GB18030',
-                'Big5',
-                'UTF-16LE',
-                'UTF-16BE',
-                'Shift_JIS',
-                'EUC-KR',
-                'ISO-8859-1',
-                'Windows-1252'
-            ];
+<!-- 自动滚动指示器 -->
+<div class="auto-scroll-indicator" id="autoScrollIndicator">
+自动滚动中... 点击任意位置暂停
+</div>
 
-            let bestResult = null;
-            let bestScore = -1;
+<!-- 主要内容区域 -->
+<div class="main-container">
+<!-- 侧边栏 -->
+<div class="sidebar" id="sidebar">
+<!-- 文件上传区域 -->
+<div class="file-upload" onclick="document.getElementById('fileInput').click()">
+<div style="font-size: 32px; margin-bottom: 10px;">📄</div>
+<div style="font-weight: 600; margin-bottom: 5px;">选择TXT文件</div>
+<div style="font-size: 14px; color: #64748b;">点击上传或拖拽文件到这里</div>
+<input type="file" id="fileInput" accept=".txt" onchange="loadFile(event)">
+</div>
 
-            // 读取文件的前几KB用于检测
-            const sampleSize = Math.min(file.size, 8192); // 8KB样本
-            const sampleBlob = file.slice(0, sampleSize);
+<!-- 编码设置 -->
+<div class="reading-settings">
+<h3 style="margin-bottom: 15px; color: var(--primary-color);">🔧 编码设置</h3>
+<div class="setting-group">
+<label class="setting-label">当前编码</label>
+<div id="currentEncoding" class="encoding-status success" style="display: none;">
+<span>✅</span> <span id="encodingName">自动检测</span>
+</div>
+</div>
+<div class="setting-group">
+<label class="setting-label">手动选择编码</label>
+<select class="setting-input" id="manualEncoding" onchange="reloadWithEncoding()">
+<option value="">自动检测 (推荐)</option>
+<option value="UTF-8">UTF-8 (Unicode)</option>
+<option value="GBK">GBK (中文Windows)</option>
+<option value="GB2312">GB2312 (简体中文)</option>
+<option value="GB18030">GB18030 (中文扩展)</option>
+<option value="Big5">Big5 (繁体中文)</option>
+<option value="UTF-16LE">UTF-16LE (Windows Unicode)</option>
+<option value="UTF-16BE">UTF-16BE (大端序Unicode)</option>
+<option value="Shift_JIS">Shift_JIS (日文)</option>
+<option value="EUC-KR">EUC-KR (韩文)</option>
+<option value="ISO-8859-1">ISO-8859-1 (拉丁文)</option>
+<option value="Windows-1252">Windows-1252 (西欧)</option>
+</select>
+</div>
+<div class="setting-group">
+<small style="color: #64748b; font-size: 12px;">
+💡 提示：如果文字显示乱码，请手动选择正确的编码格式
+</small>
+</div>
+</div>
 
-            for (let encoding of encodings) {
-                try {
-                    const result = await readFileWithEncoding(sampleBlob, encoding, true);
-                    if (result) {
-                        const score = calculateEncodingScore(result, encoding);
-                        console.log(`${encoding}: ${score}`);
-                        
-                        if (score > bestScore) {
-                            bestScore = score;
-                            bestResult = { text: result, encoding: encoding, confidence: score };
-                        }
-                    }
-                } catch (error) {
-                    console.log(`${encoding} 编码检测失败:`, error);
-                    continue;
-                }
-            }
+<!-- 阅读设置 -->
+<div class="reading-settings">
+<h3 style="margin-bottom: 15px; color: var(--primary-color);">📖 阅读设置</h3>
+<div class="setting-group">
+<label class="setting-label">字体大小</label>
+<input type="range" class="slider" id="fontSize" min="12" max="24" value="16" oninput="updateFontSize(this.value)">
+<small id="fontSizeValue">16px</small>
+</div>
+<div class="setting-group">
+<label class="setting-label">行间距</label>
+<input type="range" class="slider" id="lineHeight" min="1.4" max="2.5" step="0.1" value="1.8" oninput="updateLineHeight(this.value)">
+<small id="lineHeightValue">1.8</small>
+</div>
+<div class="setting-group">
+<label class="setting-label">自动滚动速度</label>
+<input type="range" class="slider" id="scrollSpeed" min="1" max="10" value="3" oninput="updateScrollSpeed(this.value)">
+<small id="scrollSpeedValue">中等</small>
+</div>
+<div class="setting-group">
+<label class="setting-label">字体颜色</label>
+<input type="color" class="setting-input" id="textColor" value="#334155" onchange="updateTextColor(this.value)">
+</div>
+<div class="setting-group">
+<label class="setting-label">背景颜色</label>
+<input type="color" class="setting-input" id="backgroundColor" value="#ffffff" onchange="updateBackgroundColor(this.value)">
+</div>
+</div>
 
-            // 如果找到了较好的编码，读取完整文件
-            if (bestResult && bestScore > 50) {
-                try {
-                    const fullText = await readFileWithEncoding(file, bestResult.encoding);
-                    return {
-                        text: fullText,
-                        encoding: bestResult.encoding,
-                        confidence: bestScore
-                    };
-                } catch (error) {
-                    console.error('读取完整文件失败:', error);
-                    return null;
-                }
-            }
+<!-- 搜索功能 -->
+<div class="reading-settings">
+<h3 style="margin-bottom: 15px; color: var(--primary-color);">🔍 搜索文本</h3>
+<div class="setting-group">
+<label class="setting-label">搜索内容</label>
+<input type="text" class="setting-input" id="searchInput" placeholder="输入要搜索的词..." oninput="performSearch()">
+<div class="search-result-info" id="searchResultInfo"></div>
+</div>
+<div class="setting-group" style="display: flex; gap: 10px;">
+<button class="control-btn" style="flex: 1; justify-content: center;" onclick="goToPrevMatch()">◀ 上一个</button>
+<button class="control-btn" style="flex: 1; justify-content: center;" onclick="goToNextMatch()">下一个 ▶</button>
+</div>
+</div>
 
-            return null;
-        }
+<!-- 阅读历史 -->
+<div class="reading-settings">
+<h3 style="margin-bottom: 15px; color: var(--primary-color);">📚 阅读历史</h3>
+<div id="readingHistoryList">
+<!-- 历史项将动态插入 -->
+</div>
+<div class="setting-group">
+<button class="control-btn" style="width: 100%; justify-content: center;" onclick="clearHistory()">
+🗑️ 清除历史
+</button>
+</div>
+</div>
 
-        // 使用指定编码读取文件
-        async function readFileWithEncoding(file, encoding, isSample = false) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                
-                reader.onload = function(e) {
-                    try {
-                        const result = e.target.result;
-                        
-                        if (encoding === 'UTF-8') {
-                            resolve(result);
-                        } else {
-                            // 对于其他编码，使用TextDecoder
-                            const buffer = new Uint8Array(result);
-                            const decoder = new TextDecoder(ENCODING_MAP[encoding] || encoding, { fatal: false });
-                            const text = decoder.decode(buffer);
-                            resolve(text);
-                        }
-                    } catch (error) {
-                        reject(error);
-                    }
-                };
-                
-                reader.onerror = () => reject(new Error('文件读取失败'));
-                
-                if (encoding === 'UTF-8') {
-                    reader.readAsText(file, 'UTF-8');
-                } else {
-                    reader.readAsArrayBuffer(file);
-                }
-            });
-        }
+<!-- 快速跳转 -->
+<div class="reading-settings">
+<h3 style="margin-bottom: 15px; color: var(--primary-color);">🎯 快速跳转</h3>
+<div class="setting-group">
+<label class="setting-label">跳转到百分比</label>
+<input type="number" class="setting-input" id="jumpPercent" min="0" max="100" placeholder="输入0-100" onchange="jumpToPercent(this.value)">
+</div>
+<div class="setting-group">
+<button class="control-btn" style="width: 100%; justify-content: center;" onclick="jumpToTop()">
+⬆️ 跳转到开头
+</button>
+</div>
+<div class="setting-group">
+<button class="control-btn" style="width: 100%; justify-content: center;" onclick="jumpToEnd()">
+⬇️ 跳转到结尾
+</button>
+</div>
+</div>
+</div>
 
-        // 改进的编码质量评分算法
-        function calculateEncodingScore(text, encoding) {
-            if (!text || text.length === 0) return -1;
-            
-            let score = 0;
-            let totalChars = Math.min(text.length, 2000); // 检查前2000个字符
-            
-            // 字符统计
-            let chineseCount = 0;
-            let englishCount = 0;
-            let digitCount = 0;
-            let punctuationCount = 0;
-            let invalidCharCount = 0;
-            let nullCharCount = 0;
-            
-            for (let i = 0; i < totalChars; i++) {
-                const char = text[i];
-                const code = char.charCodeAt(0);
-                
-                // 检查无效字符
-                if (char === '�' || char === '\uFFFD') {
-                    invalidCharCount++;
-                    score -= 10;
-                    continue;
-                }
-                
-                // 检查空字符
-                if (code === 0) {
-                    nullCharCount++;
-                    score -= 5;
-                    continue;
-                }
-                
-                // 中文字符 (CJK统一汉字)
-                if ((code >= 0x4e00 && code <= 0x9fff) || 
-                    (code >= 0x3400 && code <= 0x4dbf) ||
-                    (code >= 0xf900 && code <= 0xfaff)) {
-                    chineseCount++;
-                    score += 3;
-                }
-                // 中文标点符号
-                else if ((code >= 0x3000 && code <= 0x303f) ||
-                         (code >= 0xff00 && code <= 0xffef)) {
-                    punctuationCount++;
-                    score += 2;
-                }
-                // 英文字母
-                else if ((code >= 65 && code <= 90) || (code >= 97 && code <= 122)) {
-                    englishCount++;
-                    score += 1;
-                }
-                // 数字
-                else if (code >= 48 && code <= 57) {
-                    digitCount++;
-                    score += 1;
-                }
-                // 常见标点符号
-                else if ('.!?,:;()[]{}"\'-_=+*/<>@#$%^&|\\~`'.includes(char)) {
-                    punctuationCount++;
-                    score += 1;
-                }
-                // 空白字符
-                else if (char === ' ' || char === '\t' || char === '\n' || char === '\r') {
-                    score += 0.5;
-                }
-                // 其他控制字符
-                else if (code < 32) {
-                    score -= 1;
-                }
-            }
-            
-            // 根据编码类型调整权重
-            if (encoding === 'GBK' || encoding === 'GB2312' || encoding === 'GB18030') {
-                if (chineseCount > totalChars * 0.3) score += 20;
-            } else if (encoding === 'Big5') {
-                if (chineseCount > totalChars * 0.3) score += 15;
-            } else if (encoding === 'UTF-8') {
-                score += 10; // UTF-8通用性bonus
-                if (chineseCount > 0) score += 10;
-            }
-            
-            // 惩罚过多的无效字符
-            const invalidRatio = invalidCharCount / totalChars;
-            if (invalidRatio > 0.1) score -= invalidRatio * 100;
-            
-            // 惩罚过多的空字符
-            if (nullCharCount > totalChars * 0.05) score -= nullCharCount * 10;
-            
-            // 检查文本的连贯性
-            const coherenceScore = checkTextCoherence(text.substring(0, 500));
-            score += coherenceScore;
-            
-            return Math.max(0, score);
-        }
+<!-- 阅读区域 -->
+<div class="reading-area" id="readingArea">
+<div class="reader-container">
+<div class="empty-state" id="emptyState">
+<div class="empty-icon">📖</div>
+<h3>欢迎使用EasyReader</h3>
+<p style="margin-top: 10px;">点击左侧设置按钮上传您的TXT文件开始阅读</p>
+<p style="margin-top: 5px; font-size: 14px;">支持多种编码格式：UTF-8、GBK、GB2312、Big5等</p>
+</div>
+<div id="contentArea" style="display: none;">
+<h1 class="chapter-title" id="chapterTitle">文档内容</h1>
+<div class="text-content" id="textContent"></div>
+</div>
+</div>
+</div>
+</div>
 
-        // 检查文本连贯性
-        function checkTextCoherence(text) {
-            let score = 0;
-            
-            // 检查是否有完整的句子
-            const sentences = text.split(/[。！？.!?]/);
-            if (sentences.length > 1) score += 10;
-            
-            // 检查常见中文词汇
-            const commonWords = ['的', '了', '在', '是', '有', '我', '你', '他', '她', '它', '这', '那', '和', '与'];
-            for (let word of commonWords) {
-                if (text.includes(word)) score += 2;
-            }
-            
-            // 检查常见英文单词
-            const englishWords = ['the', 'and', 'of', 'to', 'a', 'in', 'for', 'is', 'on', 'that'];
-            const lowerText = text.toLowerCase();
-            for (let word of englishWords) {
-                if (lowerText.includes(' ' + word + ' ')) score += 1;
-            }
-            
-            return score;
-        }
+<!-- 底部进度条 -->
+<div class="progress-container" id="progressContainer" style="display: none;">
+<div class="progress-info">
+<span id="currentPage">0</span>/<span id="totalPages">0</span>
+</div>
+<div class="progress-bar" onclick="jumpToPosition(event)">
+<div class="progress-fill" id="progressFill"></div>
+</div>
+<div class="progress-info">
+<span id="readingProgress">0%</span>
+</div>
+</div>
 
-        // 手动重新编码
-        async function reloadWithEncoding() {
-            const encoding = document.getElementById('manualEncoding').value;
-            
-            if (!currentFile) {
-                showNotification('请先选择文件', 'warning');
-                return;
-            }
-            
-            if (!encoding) {
-                // 重新自动检测
-                loadFileContent(currentFile);
-                return;
-            }
-            
-            showLoadingMessage();
-            
-            try {
-                const text = await readFileWithEncoding(currentFile, encoding);
-                const quality = calculateEncodingScore(text, encoding);
-                
-                currentText = text;
-                currentEncoding = encoding;
-                displayContent(currentText, currentFile.name, encoding);
-                updateEncodingStatus(encoding, quality);
-                updateTotalWords();
-                updateReadingProgress();
-                
-                showNotification(`已使用 ${encoding} 编码重新加载`, 'success');
-                
-            } catch (error) {
-                console.error('编码转换失败:', error);
-                showNotification(`使用 ${encoding} 编码失败，请尝试其他编码`, 'error');
-                hideLoadingMessage();
-            }
-        }
+<!-- 自定义“继续阅读”提示框 -->
+<div class="resume-modal" id="resumeModal" style="display: none;">
+<div class="resume-modal-content">
+<button class="resume-close-btn" onclick="closeResumeModal()">&times;</button>
+<h3 style="margin: 0 0 12px; color: var(--primary-color);">📖 继续阅读？</h3>
+<p style="color: var(--text-light); margin-bottom: 20px; font-size: 14px;">
+检测到您上次阅读到 <strong id="resumePercent">0%</strong>，是否继续？
+</p>
+<div style="display: flex; gap: 10px; justify-content: flex-end;">
+<button class="control-btn" style="padding: 6px 12px; font-size: 14px;" onclick="closeResumeModal()">
+从头开始
+</button>
+<button class="control-btn" style="background: var(--primary-color); color: white; padding: 6px 12px; font-size: 14px;" onclick="confirmResume()">
+继续阅读
+</button>
+</div>
+</div>
+</div>
 
-        // 更新编码状态显示
-        function updateEncodingStatus(encoding, confidence) {
-            const statusElement = document.getElementById('currentEncoding');
-            const nameElement = document.getElementById('encodingName');
-            
-            statusElement.style.display = 'flex';
-            nameElement.textContent = encoding;
-            
-            // 根据置信度设置状态
-            if (confidence >= 80) {
-                statusElement.className = 'encoding-status success';
-                statusElement.innerHTML = '<span>✅</span><span>' + encoding + ' (优秀)</span>';
-            } else if (confidence >= 60) {
-                statusElement.className = 'encoding-status warning';
-                statusElement.innerHTML = '<span>⚠️</span><span>' + encoding + ' (良好)</span>';
-            } else {
-                statusElement.className = 'encoding-status error';
-                statusElement.innerHTML = '<span>❌</span><span>' + encoding + ' (可能有误)</span>';
-            }
-        }
+<!-- 提示用户重新选择文件 -->
+<div class="resume-modal" id="selectFileModal" style="display: none;">
+<div class="resume-modal-content">
+<button class="resume-close-btn" onclick="closeSelectFileModal()">&times;</button>
+<h3 style="margin: 0 0 12px; color: var(--primary-color);">📎 请重新选择文件</h3>
+<p style="color: var(--text-light); margin-bottom: 20px; font-size: 14px;">
+为了继续阅读上次进度，请重新选择文件：<br>
+<strong id="fileNameToSelect"></strong>
+</p>
+<button class="control-btn" style="background: var(--primary-color); color: white; width: 100%;" onclick="closeSelectFileModal()">
+知道了
+</button>
+</div>
+</div>
 
-        // 显示加载消息
-        function showLoadingMessage() {
-            const emptyState = document.getElementById('emptyState');
-            emptyState.innerHTML = `
-                <div class="empty-icon"><div class="loading-spinner"></div></div>
-                <h3>正在检测文件编码...</h3>
-                <p style="margin-top: 10px;">正在尝试最佳编码格式，请稍候</p>
-            `;
-        }
+<!-- 清除历史确认框 -->
+<div class="resume-modal" id="clearHistoryModal" style="display: none;">
+<div class="resume-modal-content">
+<button class="resume-close-btn" onclick="closeClearHistoryModal()">&times;</button>
+<h3 style="margin: 0 0 12px; color: var(--primary-color);">🗑️ 清除阅读历史？</h3>
+<p style="color: var(--text-light); margin-bottom: 20px; font-size: 14px;">
+此操作将清除所有阅读记录，无法恢复。
+</p>
+<div style="display: flex; gap: 10px; justify-content: flex-end;">
+<button class="control-btn" style="padding: 6px 12px; font-size: 14px;" onclick="closeClearHistoryModal()">
+取消
+</button>
+<button class="control-btn" style="background: var(--error-color); color: white; padding: 6px 12px; font-size: 14px;" onclick="confirmClearHistory()">
+确定清除
+</button>
+</div>
+</div>
+</div>
 
-        // 隐藏加载消息
-        function hideLoadingMessage() {
-            const emptyState = document.getElementById('emptyState');
-            emptyState.innerHTML = `
-                <div class="empty-icon">📖</div>
-                <h3>欢迎使用EasyReader</h3>
-                <p style="margin-top: 10px;">点击左侧设置按钮上传您的TXT文件开始阅读</p>
-                <p style="margin-top: 5px; font-size: 14px;">支持多种编码格式：UTF-8、GBK、GB2312、Big5等</p>
-            `;
-        }
+<script>
+// 全局变量
+let currentText = '';
+let currentFile = null;
+let currentEncoding = '';
+let autoScrollInterval = null;
+let autoScrollSpeed = 3;
+let isAutoScrolling = false;
+let totalWords = 0;
+let searchMatches = [];
+let currentMatchIndex = -1;
 
-        // 显示编码选择器
-        function showEncodingSelector() {
-            const emptyState = document.getElementById('emptyState');
-            emptyState.innerHTML = `
-                <div class="empty-icon">🔧</div>
-                <h3>无法自动识别编码</h3>
-                <p style="margin-top: 10px; margin-bottom: 20px;">请在左侧设置面板手动选择文件编码格式</p>
-                <button onclick="toggleSidebar()" style="background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">
-                    打开编码设置
-                </button>
-            `;
-        }
+// 存储待恢复的进度
+window.pendingResumeProgress = null;
 
-        // 显示内容
-        function displayContent(text, fileName, encoding) {
-            document.getElementById('emptyState').style.display = 'none';
-            document.getElementById('contentArea').style.display = 'block';
-            
-            // 显示文件名和编码信息
-            const titleText = fileName || '文档内容';
-            const encodingInfo = encoding ? ` (${encoding})` : '';
-            document.getElementById('chapterTitle').textContent = titleText + encodingInfo;
-            document.getElementById('textContent').textContent = text;
-            
-            // 自动关闭侧边栏（移动端）
-            if (window.innerWidth <= 768) {
-                const sidebar = document.getElementById('sidebar');
-                if (sidebar.classList.contains('open')) {
-                    toggleSidebar();
-                }
-            }
-            
-            // 滚动到顶部
-            window.scrollTo(0, 0);
-        }
+// 支持的编码映射表
+const ENCODING_MAP = {
+'UTF-8': 'utf-8',
+'GBK': 'gbk',
+'GB2312': 'gb2312',
+'GB18030': 'gb18030',
+'Big5': 'big5',
+'UTF-16LE': 'utf-16le',
+'UTF-16BE': 'utf-16be',
+'Shift_JIS': 'shift_jis',
+'EUC-KR': 'euc-kr',
+'ISO-8859-1': 'iso-8859-1',
+'Windows-1252': 'windows-1252'
+};
 
-        // 显示通知消息
-        function showNotification(message, type = 'success') {
-            // 移除现有通知
-            const existingNotification = document.querySelector('.notification');
-            if (existingNotification) {
-                existingNotification.remove();
-            }
-            
-            const notification = document.createElement('div');
-            notification.className = `notification ${type}`;
-            notification.textContent = message;
-            document.body.appendChild(notification);
-            
-            // 显示动画
-            setTimeout(() => {
-                notification.classList.add('show');
-            }, 100);
-            
-            // 3秒后自动消失
-            setTimeout(() => {
-                notification.classList.remove('show');
-                setTimeout(() => {
-                    if (notification.parentNode) {
-                        notification.parentNode.removeChild(notification);
-                    }
-                }, 300);
-            }, 3000);
-        }
+// 初始化
+document.addEventListener('DOMContentLoaded', function() {
+loadUserSettings();
+loadReadingHistory();
+setupEventListeners();
+setupDragAndDrop();
+});
 
-        // 更新字体大小
-        function updateFontSize(size) {
-            document.getElementById('textContent').style.fontSize = size + 'px';
-            document.getElementById('fontSizeValue').textContent = size + 'px';
-            saveUserSettings();
-        }
+// 设置事件监听器
+function setupEventListeners() {
+window.addEventListener('scroll', debounce(updateReadingProgress, 300));
+document.addEventListener('keydown', handleKeyboardShortcuts);
+document.addEventListener('click', function(e) {
+if (isAutoScrolling && !e.target.closest('.navbar') && !e.target.closest('.sidebar')) {
+toggleAutoScroll();
+}
+});
+}
 
-        // 更新行间距
-        function updateLineHeight(height) {
-            document.getElementById('textContent').style.lineHeight = height;
-            document.getElementById('lineHeightValue').textContent = height;
-            saveUserSettings();
-        }
+// 防抖函数
+function debounce(func, delay) {
+let timer;
+return function() {
+const context = this, args = arguments;
+clearTimeout(timer);
+timer = setTimeout(() => func.apply(context, args), delay);
+};
+}
 
-        // 更新滚动速度
-        function updateScrollSpeed(speed) {
-            autoScrollSpeed = parseInt(speed);
-            const speedText = ['极慢', '很慢', '慢', '中等', '快', '很快', '极快', '飞快', '闪电', '光速'];
-            document.getElementById('scrollSpeedValue').textContent = speedText[speed - 1] || '中等';
-            
-            // 如果正在自动滚动，重新启动以应用新速度
-            if (isAutoScrolling) {
-                stopAutoScroll();
-                startAutoScroll();
-            }
-            saveUserSettings();
-        }
+// 设置拖拽上传功能
+function setupDragAndDrop() {
+const fileUpload = document.querySelector('.file-upload');
+fileUpload.addEventListener('dragover', (e) => {
+e.preventDefault();
+fileUpload.style.borderColor = 'var(--primary-color)';
+fileUpload.style.background = 'rgba(79, 70, 229, 0.1)';
+});
+fileUpload.addEventListener('dragleave', (e) => {
+e.preventDefault();
+fileUpload.style.borderColor = 'var(--border-light)';
+fileUpload.style.background = 'transparent';
+});
+fileUpload.addEventListener('drop', (e) => {
+e.preventDefault();
+fileUpload.style.borderColor = 'var(--border-light)';
+fileUpload.style.background = 'transparent';
+const files = e.dataTransfer.files;
+if (files.length > 0) {
+loadFileContent(files[0]);
+}
+});
+}
 
-        // 更新文字颜色
-        function updateTextColor(color) {
-            document.getElementById('textContent').style.color = color;
-            saveUserSettings();
-        }
+// 切换侧边栏
+function toggleSidebar() {
+const sidebar = document.getElementById('sidebar');
+const readingArea = document.getElementById('readingArea');
+sidebar.classList.toggle('open');
+readingArea.classList.toggle('sidebar-open');
+}
 
-        // 更新背景颜色
-        function updateBackgroundColor(color) {
-            document.getElementById('textContent').style.backgroundColor = color;
-            saveUserSettings();
-        }
+// 加载文件
+function loadFile(event) {
+const file = event.target.files[0];
+if (file) {
+loadFileContent(file);
+}
+}
 
-        // 切换深色模式
-        function toggleDarkMode() {
-            document.body.classList.toggle('dark');
-            saveUserSettings();
-        }
+// 生成文件指纹（轻量采样）
+async function generateFileFingerprint(file) {
+const headSize = Math.min(file.size, 512);
+const tailSize = Math.min(file.size, 512);
+const head = file.slice(0, headSize);
+const tail = file.size > 512 ? file.slice(file.size - tailSize, file.size) : head;
 
-        // 切换全屏模式
-        function toggleFullscreen() {
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch(err => {
-                    console.log('无法进入全屏模式:', err);
-                    showNotification('无法进入全屏模式', 'warning');
-                });
-            } else {
-                document.exitFullscreen();
-            }
-        }
+const [headBuf, tailBuf] = await Promise.all([
+readFileAsArrayBuffer(head),
+readFileAsArrayBuffer(tail)
+]);
 
-        // 自动滚动功能
-        function toggleAutoScroll() {
-            if (isAutoScrolling) {
-                stopAutoScroll();
-            } else {
-                startAutoScroll();
-            }
-        }
+const headHex = Array.from(new Uint8Array(headBuf)).slice(0, 8).map(b => b.toString(16).padStart(2, '0')).join('');
+const tailHex = Array.from(new Uint8Array(tailBuf)).slice(-8).map(b => b.toString(16).padStart(2, '0')).join('');
+return `${file.name}_${file.size}_${file.lastModified}_${headHex}_${tailHex}`;
+}
 
-        function startAutoScroll() {
-            if (!currentText) {
-                showNotification('请先加载文件', 'warning');
-                return;
-            }
-            
-            isAutoScrolling = true;
-            document.getElementById('autoScrollIndicator').classList.add('active');
-            
-            autoScrollInterval = setInterval(() => {
-                window.scrollBy(0, autoScrollSpeed);
-                
-                // 如果已经滚动到底部，停止自动滚动
-                if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 100) {
-                    stopAutoScroll();
-                    showNotification('已滚动到文档末尾', 'success');
-                }
-            }, 50);
-        }
+function readFileAsArrayBuffer(blob) {
+return new Promise((resolve, reject) => {
+const reader = new FileReader();
+reader.onload = () => resolve(reader.result);
+reader.onerror = reject;
+reader.readAsArrayBuffer(blob);
+});
+}
 
-        function stopAutoScroll() {
-            isAutoScrolling = false;
-            document.getElementById('autoScrollIndicator').classList.remove('active');
-            
-            if (autoScrollInterval) {
-                clearInterval(autoScrollInterval);
-                autoScrollInterval = null;
-            }
-        }
+// 读取文件内容
+async function loadFileContent(file) {
+if (!file.type.includes('text') && !file.name.toLowerCase().endsWith('.txt')) {
+showNotification('请选择TXT格式的文件！', 'error');
+return;
+}
 
-        // 跳转功能
-        function jumpToPercent(percent) {
-            if (!currentText || percent < 0 || percent > 100) return;
-            
-            const targetPosition = (document.body.scrollHeight - window.innerHeight) * (percent / 100);
-            window.scrollTo({
-                top: targetPosition,
-                behavior: 'smooth'
-            });
-            
-            showNotification(`已跳转到 ${percent}%`, 'success');
-        }
+showLoadingMessage();
 
-        function jumpToTop() {
-            window.scrollTo({
-                top: 0,
-                behavior: 'smooth'
-            });
-            showNotification('已跳转到文档开头', 'success');
-        }
+// 生成指纹
+const fingerprint = await generateFileFingerprint(file);
+const history = getHistory();
+const record = history[fingerprint];
 
-        function jumpToEnd() {
-            window.scrollTo({
-                top: document.body.scrollHeight,
-                behavior: 'smooth'
-            });
-            showNotification('已跳转到文档末尾', 'success');
-        }
+currentFile = file;
+try {
+const result = await detectBestEncoding(file);
+if (result) {
+currentText = result.text;
+currentEncoding = result.encoding;
+displayContent(currentText, file.name, result.encoding);
+updateEncodingStatus(result.encoding, result.confidence);
+document.getElementById('progressContainer').style.display = 'flex';
+updateTotalWords();
+updateReadingProgress();
 
-        function jumpToPosition(event) {
-            const progressBar = event.currentTarget;
-            const rect = progressBar.getBoundingClientRect();
-            const clickX = event.clientX - rect.left;
-            const percent = (clickX / rect.width) * 100;
-            jumpToPercent(Math.round(percent));
-        }
+// 恢复阅读位置 - 使用自定义 UI 提示
+if (record && record.progress > 0) {
+setTimeout(() => {
+const modal = document.getElementById('resumeModal');
+const percentSpan = document.getElementById('resumePercent');
+percentSpan.textContent = `${Math.round(record.progress)}%`;
+modal.style.display = 'flex';
+window.pendingResumeProgress = record.progress;
+}, 500);
+}
 
-        // 更新阅读进度
-        function updateReadingProgress() {
-            if (!currentText) return;
-            
-            const scrollTop = window.scrollY;
-            const scrollHeight = document.body.scrollHeight - window.innerHeight;
-            const progress = scrollHeight > 0 ? (scrollTop / scrollHeight) * 100 : 0;
-            
-            document.getElementById('progressFill').style.width = progress + '%';
-            document.getElementById('readingProgress').textContent = Math.round(progress) + '%';
-            
-            // 计算当前页数（假设每1000字符为一页）
-            const currentCharPos = Math.round((currentText.length * progress) / 100);
-            const currentPage = Math.max(1, Math.ceil(currentCharPos / 1000));
-            const totalPages = Math.ceil(currentText.length / 1000);
-            
-            document.getElementById('currentPage').textContent = currentPage;
-            document.getElementById('totalPages').textContent = totalPages;
-        }
+// 重置搜索
+searchMatches = [];
+currentMatchIndex = -1;
+document.getElementById('searchInput').value = '';
+document.getElementById('searchResultInfo').textContent = '';
+} else {
+showEncodingSelector();
+}
+} catch (error) {
+console.error('读取文件失败:', error);
+showNotification('读取文件失败，请重试', 'error');
+hideLoadingMessage();
+}
+}
 
-        // 统计总字数
-        function updateTotalWords() {
-            if (currentText) {
-                totalWords = currentText.length;
-            }
-        }
+// 保存阅读进度
+function updateReadingProgress() {
+if (!currentText || !currentFile) return;
 
-        // 键盘快捷键
-        function handleKeyboardShortcuts(event) {
-            // 防止在输入框中触发快捷键
-            if (event.target.tagName === 'INPUT' || event.target.tagName === 'SELECT') return;
-            
-            switch(event.key) {
-                case ' ': // 空格键：开始/暂停自动滚动
-                    event.preventDefault();
-                    toggleAutoScroll();
-                    break;
-                case 'ArrowUp': // 上箭头：向上滚动
-                    event.preventDefault();
-                    window.scrollBy(0, -100);
-                    break;
-                case 'ArrowDown': // 下箭头：向下滚动
-                    event.preventDefault();
-                    window.scrollBy(0, 100);
-                    break;
-                case 'Home': // Home键：跳转到开头
-                    event.preventDefault();
-                    jumpToTop();
-                    break;
-                case 'End': // End键：跳转到结尾
-                    event.preventDefault();
-                    jumpToEnd();
-                    break;
-                case 'f': // F键：全屏
-                case 'F':
-                    if (event.ctrlKey || event.metaKey) return; // 避免与浏览器搜索冲突
-                    event.preventDefault();
-                    toggleFullscreen();
-                    break;
-                case 'd': // D键：深色模式
-                case 'D':
-                    event.preventDefault();
-                    toggleDarkMode();
-                    break;
-                case 's': // S键：打开设置
-                case 'S':
-                    if (event.ctrlKey || event.metaKey) return; // 避免与保存冲突
-                    event.preventDefault();
-                    toggleSidebar();
-                    break;
-            }
-        }
+const scrollTop = window.scrollY;
+const scrollHeight = document.body.scrollHeight - window.innerHeight;
+const progress = scrollHeight > 0 ? (scrollTop / scrollHeight) * 100 : 0;
 
-        // 保存用户设置
-        function saveUserSettings() {
-            const settings = {
-                fontSize: document.getElementById('fontSize').value,
-                lineHeight: document.getElementById('lineHeight').value,
-                scrollSpeed: document.getElementById('scrollSpeed').value,
-                textColor: document.getElementById('textColor').value,
-                backgroundColor: document.getElementById('backgroundColor').value,
-                isDarkMode: document.body.classList.contains('dark')
-            };
-            window.userSettings = settings;
-        }
+document.getElementById('progressFill').style.width = progress + '%';
+document.getElementById('readingProgress').textContent = Math.round(progress) + '%';
 
-        // 加载用户设置
-        function loadUserSettings() {
-            const settings = window.userSettings;
-            if (settings) {
-                document.getElementById('fontSize').value = settings.fontSize;
-                document.getElementById('lineHeight').value = settings.lineHeight;
-                document.getElementById('scrollSpeed').value = settings.scrollSpeed;
-                document.getElementById('textColor').value = settings.textColor;
-                document.getElementById('backgroundColor').value = settings.backgroundColor;
-                
-                updateFontSize(settings.fontSize);
-                updateLineHeight(settings.lineHeight);
-                updateScrollSpeed(settings.scrollSpeed);
-                updateTextColor(settings.textColor);
-                updateBackgroundColor(settings.backgroundColor);
-                
-                if (settings.isDarkMode) {
-                    document.body.classList.add('dark');
-                }
-            }
-        }
-    </script>
+const currentCharPos = Math.round((currentText.length * progress) / 100);
+const currentPage = Math.max(1, Math.ceil(currentCharPos / 1000));
+const totalPages = Math.ceil(currentText.length / 1000);
+document.getElementById('currentPage').textContent = currentPage;
+document.getElementById('totalPages').textContent = totalPages;
+
+// 保存进度
+if (currentFile) {
+generateFileFingerprint(currentFile).then(fingerprint => {
+saveReadingProgress(fingerprint, Math.round(progress));
+});
+}
+}
+
+// 保存进度到 localStorage
+function saveReadingProgress(fingerprint, progress) {
+const history = getHistory();
+history[fingerprint] = {
+filename: currentFile.name,
+progress,
+lastOpenTime: new Date().toISOString()
+};
+localStorage.setItem('readingHistory', JSON.stringify(history));
+renderReadingHistory();
+}
+
+// 获取历史记录
+function getHistory() {
+return JSON.parse(localStorage.getItem('readingHistory') || '{}');
+}
+
+// 渲染历史列表
+function renderReadingHistory() {
+const list = document.getElementById('readingHistoryList');
+const history = Object.values(getHistory())
+.sort((a, b) => new Date(b.lastOpenTime) - new Date(a.lastOpenTime))
+.slice(0, 10);
+
+list.innerHTML = history.map(item => `
+<div class="history-item" onclick="loadHistoryFile('${encodeURIComponent(item.filename)}', ${item.progress})">
+<div class="history-filename">${item.filename}</div>
+<div class="history-progress">进度 ${item.progress}% · ${formatTimeAgo(item.lastOpenTime)}</div>
+</div>
+`).join('');
+}
+
+// 加载历史文件（弹出提示）
+function loadHistoryFile(filename, progress) {
+const modal = document.getElementById('selectFileModal');
+const nameSpan = document.getElementById('fileNameToSelect');
+nameSpan.textContent = decodeURIComponent(filename);
+modal.style.display = 'flex';
+window.pendingResumeProgress = progress;
+}
+
+// 清除历史 - 弹出确认框
+function clearHistory() {
+document.getElementById('clearHistoryModal').style.display = 'flex';
+}
+
+// 时间格式化
+function formatTimeAgo(isoString) {
+const now = new Date();
+const past = new Date(isoString);
+const diffInHours = (now - past) / 1000 / 60 / 60;
+if (diffInHours < 1) return '刚刚';
+if (diffInHours < 24) return `${Math.floor(diffInHours)}小时前`;
+return `${Math.floor(diffInHours / 24)}天前`;
+}
+
+// 加载历史
+function loadReadingHistory() {
+renderReadingHistory();
+}
+
+// 增强的编码检测
+async function detectBestEncoding(file) {
+const encodings = [
+'UTF-8', 'GBK', 'GB2312', 'GB18030', 'Big5', 'UTF-16LE', 'UTF-16BE',
+'Shift_JIS', 'EUC-KR', 'ISO-8859-1', 'Windows-1252'
+];
+let bestResult = null;
+let bestScore = -1;
+const sampleSize = Math.min(file.size, 8192);
+const sampleBlob = file.slice(0, sampleSize);
+
+for (let encoding of encodings) {
+try {
+const result = await readFileWithEncoding(sampleBlob, encoding, true);
+if (result) {
+const score = calculateEncodingScore(result, encoding);
+if (score > bestScore) {
+bestScore = score;
+bestResult = { text: result, encoding: encoding, confidence: score };
+}
+}
+} catch (error) {
+continue;
+}
+}
+
+if (bestResult && bestScore > 50) {
+try {
+const fullText = await readFileWithEncoding(file, bestResult.encoding);
+return { text: fullText, encoding: bestResult.encoding, confidence: bestScore };
+} catch (error) {
+return null;
+}
+}
+return null;
+}
+
+// 使用指定编码读取文件
+async function readFileWithEncoding(file, encoding, isSample = false) {
+return new Promise((resolve, reject) => {
+const reader = new FileReader();
+reader.onload = function(e) {
+try {
+const result = e.target.result;
+if (encoding === 'UTF-8') {
+resolve(result);
+} else {
+const buffer = new Uint8Array(result);
+const decoder = new TextDecoder(ENCODING_MAP[encoding] || encoding, { fatal: false });
+const text = decoder.decode(buffer);
+resolve(text);
+}
+} catch (error) {
+reject(error);
+}
+};
+reader.onerror = () => reject(new Error('文件读取失败'));
+if (encoding === 'UTF-8') {
+reader.readAsText(file, 'UTF-8');
+} else {
+reader.readAsArrayBuffer(file);
+}
+});
+}
+
+// 改进的编码质量评分算法
+function calculateEncodingScore(text, encoding) {
+if (!text || text.length === 0) return -1;
+let score = 0;
+let totalChars = Math.min(text.length, 2000);
+let chineseCount = 0;
+let invalidCharCount = 0;
+
+for (let i = 0; i < totalChars; i++) {
+const char = text[i];
+const code = char.charCodeAt(0);
+if (char === '' || char === '\uFFFD') {
+invalidCharCount++;
+score -= 10;
+}
+if ((code >= 0x4e00 && code <= 0x9fff)) {
+chineseCount++;
+score += 3;
+}
+}
+
+if (['GBK', 'GB2312', 'GB18030'].includes(encoding)) {
+if (chineseCount > totalChars * 0.3) score += 20;
+} else if (encoding === 'Big5') {
+if (chineseCount > totalChars * 0.3) score += 15;
+} else if (encoding === 'UTF-8') {
+score += 10;
+if (chineseCount > 0) score += 10;
+}
+
+const invalidRatio = invalidCharCount / totalChars;
+if (invalidRatio > 0.1) score -= invalidRatio * 100;
+const coherenceScore = checkTextCoherence(text.substring(0, 500));
+score += coherenceScore;
+return Math.max(0, score);
+}
+
+function checkTextCoherence(text) {
+let score = 0;
+const commonWords = ['的', '了', '在', '是', '有', '我', '你', '他', '她', '它', '这', '那', '和', '与'];
+for (let word of commonWords) {
+if (text.includes(word)) score += 2;
+}
+return score;
+}
+
+// 手动重新编码
+async function reloadWithEncoding() {
+const encoding = document.getElementById('manualEncoding').value;
+if (!currentFile) {
+showNotification('请先选择文件', 'warning');
+return;
+}
+if (!encoding) {
+loadFileContent(currentFile);
+return;
+}
+showLoadingMessage();
+try {
+const text = await readFileWithEncoding(currentFile, encoding);
+const quality = calculateEncodingScore(text, encoding);
+currentText = text;
+currentEncoding = encoding;
+displayContent(currentText, currentFile.name, encoding);
+updateEncodingStatus(encoding, quality);
+updateTotalWords();
+updateReadingProgress();
+showNotification(`已使用 ${encoding} 编码重新加载`, 'success');
+} catch (error) {
+showNotification(`使用 ${encoding} 编码失败，请尝试其他编码`, 'error');
+hideLoadingMessage();
+}
+}
+
+// 更新编码状态显示
+function updateEncodingStatus(encoding, confidence) {
+const statusElement = document.getElementById('currentEncoding');
+const nameElement = document.getElementById('encodingName');
+statusElement.style.display = 'flex';
+nameElement.textContent = encoding;
+if (confidence >= 80) {
+statusElement.className = 'encoding-status success';
+statusElement.innerHTML = '<span>✅</span><span>' + encoding + ' (优秀)</span>';
+} else if (confidence >= 60) {
+statusElement.className = 'encoding-status warning';
+statusElement.innerHTML = '<span>⚠️</span><span>' + encoding + ' (良好)</span>';
+} else {
+statusElement.className = 'encoding-status error';
+statusElement.innerHTML = '<span>❌</span><span>' + encoding + ' (可能有误)</span>';
+}
+}
+
+// 显示加载消息
+function showLoadingMessage() {
+const emptyState = document.getElementById('emptyState');
+emptyState.innerHTML = `
+<div class="empty-icon"><div class="loading-spinner"></div></div>
+<h3>正在检测文件编码...</h3>
+<p style="margin-top: 10px;">正在尝试最佳编码格式，请稍候</p>
+`;
+}
+
+// 隐藏加载消息
+function hideLoadingMessage() {
+const emptyState = document.getElementById('emptyState');
+emptyState.innerHTML = `
+<div class="empty-icon">📖</div>
+<h3>欢迎使用EasyReader</h3>
+<p style="margin-top: 10px;">点击左侧设置按钮上传您的TXT文件开始阅读</p>
+<p style="margin-top: 5px; font-size: 14px;">支持多种编码格式：UTF-8、GBK、GB2312、Big5等</p>
+`;
+}
+
+// 显示编码选择器
+function showEncodingSelector() {
+const emptyState = document.getElementById('emptyState');
+emptyState.innerHTML = `
+<div class="empty-icon">🔧</div>
+<h3>无法自动识别编码</h3>
+<p style="margin-top: 10px; margin-bottom: 20px;">请在左侧设置面板手动选择文件编码格式</p>
+<button onclick="toggleSidebar()" style="background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">
+打开编码设置
+</button>
+`;
+}
+
+// 显示内容
+function displayContent(text, fileName, encoding) {
+document.getElementById('emptyState').style.display = 'none';
+document.getElementById('contentArea').style.display = 'block';
+const titleText = fileName || '文档内容';
+const encodingInfo = encoding ? ` (${encoding})` : '';
+document.getElementById('chapterTitle').textContent = titleText + encodingInfo;
+document.getElementById('textContent').textContent = text;
+if (window.innerWidth <= 768 && document.getElementById('sidebar').classList.contains('open')) {
+toggleSidebar();
+}
+window.scrollTo(0, 0);
+}
+
+// 显示通知消息
+function showNotification(message, type = 'success') {
+const existing = document.querySelector('.notification');
+if (existing) existing.remove();
+const notification = document.createElement('div');
+notification.className = `notification ${type}`;
+notification.textContent = message;
+document.body.appendChild(notification);
+setTimeout(() => notification.classList.add('show'), 100);
+setTimeout(() => {
+notification.classList.remove('show');
+setTimeout(() => {
+if (notification.parentNode) notification.parentNode.removeChild(notification);
+}, 300);
+}, 3000);
+}
+
+// 更新字体大小
+function updateFontSize(size) {
+document.getElementById('textContent').style.fontSize = size + 'px';
+document.getElementById('fontSizeValue').textContent = size + 'px';
+saveUserSettings();
+}
+
+// 更新行间距
+function updateLineHeight(height) {
+document.getElementById('textContent').style.lineHeight = height;
+document.getElementById('lineHeightValue').textContent = height;
+saveUserSettings();
+}
+
+// 更新滚动速度
+function updateScrollSpeed(speed) {
+autoScrollSpeed = parseInt(speed);
+const speedText = ['极慢','很慢','慢','中等','快','很快','极快','飞快','闪电','光速'];
+document.getElementById('scrollSpeedValue').textContent = speedText[speed - 1] || '中等';
+if (isAutoScrolling) { stopAutoScroll(); startAutoScroll(); }
+saveUserSettings();
+}
+
+// 更新文字颜色
+function updateTextColor(color) {
+document.getElementById('textContent').style.color = color;
+saveUserSettings();
+}
+
+// 更新背景颜色
+function updateBackgroundColor(color) {
+document.getElementById('textContent').style.backgroundColor = color;
+saveUserSettings();
+}
+
+// 切换深色模式
+function toggleDarkMode() {
+document.body.classList.toggle('dark');
+saveUserSettings();
+}
+
+// 切换全屏模式
+function toggleFullscreen() {
+if (!document.fullscreenElement) {
+document.documentElement.requestFullscreen().catch(err => {
+showNotification('无法进入全屏模式', 'warning');
+});
+} else {
+document.exitFullscreen();
+}
+}
+
+// 自动滚动功能
+function toggleAutoScroll() {
+if (isAutoScrolling) stopAutoScroll();
+else startAutoScroll();
+}
+
+function startAutoScroll() {
+if (!currentText) {
+showNotification('请先加载文件', 'warning');
+return;
+}
+isAutoScrolling = true;
+document.getElementById('autoScrollIndicator').classList.add('active');
+autoScrollInterval = setInterval(() => {
+window.scrollBy(0, autoScrollSpeed);
+if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 100) {
+stopAutoScroll();
+showNotification('已滚动到文档末尾', 'success');
+}
+}, 50);
+}
+
+function stopAutoScroll() {
+isAutoScrolling = false;
+document.getElementById('autoScrollIndicator').classList.remove('active');
+if (autoScrollInterval) clearInterval(autoScrollInterval);
+autoScrollInterval = null;
+}
+
+// 跳转功能
+function jumpToPercent(percent) {
+if (!currentText || percent < 0 || percent > 100) return;
+const targetPosition = (document.body.scrollHeight - window.innerHeight) * (percent / 100);
+window.scrollTo({ top: targetPosition, behavior: 'smooth' });
+showNotification(`已跳转到 ${percent}%`, 'success');
+}
+
+function jumpToTop() {
+window.scrollTo({ top: 0, behavior: 'smooth' });
+showNotification('已跳转到文档开头', 'success');
+}
+
+function jumpToEnd() {
+window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+showNotification('已跳转到文档末尾', 'success');
+}
+
+function jumpToPosition(event) {
+const progressBar = event.currentTarget;
+const rect = progressBar.getBoundingClientRect();
+const clickX = event.clientX - rect.left;
+const percent = (clickX / rect.width) * 100;
+jumpToPercent(Math.round(percent));
+}
+
+// 统计总字数
+function updateTotalWords() {
+if (currentText) {
+totalWords = currentText.length;
+}
+}
+
+// 键盘快捷键
+function handleKeyboardShortcuts(event) {
+if (event.target.tagName === 'INPUT' || event.target.tagName === 'SELECT') return;
+switch(event.key) {
+case ' ': event.preventDefault(); toggleAutoScroll(); break;
+case 'ArrowUp': event.preventDefault(); window.scrollBy(0, -100); break;
+case 'ArrowDown': event.preventDefault(); window.scrollBy(0, 100); break;
+case 'Home': event.preventDefault(); jumpToTop(); break;
+case 'End': event.preventDefault(); jumpToEnd(); break;
+case 'f': case 'F': if (!event.ctrlKey && !event.metaKey) { event.preventDefault(); toggleFullscreen(); } break;
+case 'd': case 'D': event.preventDefault(); toggleDarkMode(); break;
+case 's': case 'S': if (!event.ctrlKey && !event.metaKey) { event.preventDefault(); toggleSidebar(); } break;
+}
+}
+
+// 文本搜索功能
+function performSearch() {
+const query = document.getElementById('searchInput').value.trim();
+const contentEl = document.getElementById('textContent');
+if (!query) {
+contentEl.innerHTML = currentText;
+searchMatches = [];
+currentMatchIndex = -1;
+document.getElementById('searchResultInfo').textContent = '';
+return;
+}
+
+const regex = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+const matches = [...currentText.matchAll(regex)];
+searchMatches = matches;
+currentMatchIndex = matches.length > 0 ? 0 : -1;
+
+const highlightedText = currentText.replace(regex, match => `<mark class="highlight">${match}</mark>`);
+contentEl.innerHTML = highlightedText;
+
+document.getElementById('searchResultInfo').textContent = 
+matches.length > 0 ? `找到 ${matches.length} 个匹配项` : '未找到匹配内容';
+}
+
+function goToPrevMatch() {
+if (searchMatches.length === 0) return;
+currentMatchIndex = (currentMatchIndex - 1 + searchMatches.length) % searchMatches.length;
+scrollToCurrentMatch();
+}
+
+function goToNextMatch() {
+if (searchMatches.length === 0) return;
+currentMatchIndex = (currentMatchIndex + 1) % searchMatches.length;
+scrollToCurrentMatch();
+}
+
+function scrollToCurrentMatch() {
+const marks = document.querySelectorAll('.highlight, mark');
+if (marks.length === 0) return;
+const target = marks[currentMatchIndex];
+target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+target.style.transition = 'all 0.3s';
+target.style.transform = 'scale(1.1)';
+setTimeout(() => { target.style.transform = 'scale(1)'; }, 300);
+}
+
+// 保存用户设置
+function saveUserSettings() {
+const settings = {
+fontSize: document.getElementById('fontSize').value,
+lineHeight: document.getElementById('lineHeight').value,
+scrollSpeed: document.getElementById('scrollSpeed').value,
+textColor: document.getElementById('textColor').value,
+backgroundColor: document.getElementById('backgroundColor').value,
+isDarkMode: document.body.classList.contains('dark')
+};
+localStorage.setItem('userSettings', JSON.stringify(settings));
+}
+
+// 加载用户设置
+function loadUserSettings() {
+const saved = localStorage.getItem('userSettings');
+if (saved) {
+const settings = JSON.parse(saved);
+document.getElementById('fontSize').value = settings.fontSize;
+document.getElementById('lineHeight').value = settings.lineHeight;
+document.getElementById('scrollSpeed').value = settings.scrollSpeed;
+document.getElementById('textColor').value = settings.textColor;
+document.getElementById('backgroundColor').value = settings.backgroundColor;
+updateFontSize(settings.fontSize);
+updateLineHeight(settings.lineHeight);
+updateScrollSpeed(settings.scrollSpeed);
+updateTextColor(settings.textColor);
+updateBackgroundColor(settings.backgroundColor);
+if (settings.isDarkMode) {
+document.body.classList.add('dark');
+}
+}
+}
+
+// 确认继续阅读
+function confirmResume() {
+if (window.pendingResumeProgress !== null) {
+jumpToPercent(window.pendingResumeProgress);
+}
+closeResumeModal();
+}
+
+// 关闭“继续阅读”提示框
+function closeResumeModal() {
+document.getElementById('resumeModal').style.display = 'none';
+window.pendingResumeProgress = null;
+}
+
+// 关闭“请重新选择文件”提示框
+function closeSelectFileModal() {
+document.getElementById('selectFileModal').style.display = 'none';
+}
+
+// 关闭“清除历史”提示框
+function closeClearHistoryModal() {
+document.getElementById('clearHistoryModal').style.display = 'none';
+}
+
+// 确认清除历史
+function confirmClearHistory() {
+localStorage.removeItem('readingHistory');
+renderReadingHistory();
+showNotification('阅读历史已清除', 'success');
+closeClearHistoryModal();
+}
+
+// 点击遮罩关闭模态框
+document.getElementById('resumeModal')?.addEventListener('click', e => e.target === e.currentTarget && closeResumeModal());
+document.getElementById('selectFileModal')?.addEventListener('click', e => e.target === e.currentTarget && closeSelectFileModal());
+document.getElementById('clearHistoryModal')?.addEventListener('click', e => e.target === e.currentTarget && closeClearHistoryModal());
+</script>
+</body>
+</html>
+
+
+
+<script>
+      
+</script>
 </body>
 </html>
